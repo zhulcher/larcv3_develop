@@ -10,8 +10,9 @@ Welcome to larcv's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
-
+   introduction/intro.rst
+   installation/install.rst
+   
 Indices and tables
 ==================
 
