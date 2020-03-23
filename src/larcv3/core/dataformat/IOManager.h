@@ -145,6 +145,7 @@ namespace larcv3 {
     size_t register_producer(const ProducerName_t& name);
 
     void open_new_input_file(std::string filename);
+    void close_input_file();
     void read_current_event_id();
 
     void append_event_id();
@@ -219,7 +220,7 @@ namespace larcv3 {
 
 
     // Hold a copy of the file access property list:
-    hid_t  _fapl; //FileAccPropList 
+    hid_t  _fapl; //FileAccPropList
 
     std::map<std::string, hid_t> _groups;
 
@@ -264,4 +265,3 @@ void init_iomanager(pybind11::module m);
 
 #endif
 /** @} */ // end of doxygen group
-    

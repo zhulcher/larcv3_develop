@@ -32,6 +32,8 @@ IOManager::IOManager(IOMode_t mode, std::string name)
       _in_entries_total(0),
       _in_file_v(),
       _in_dir_v(),
+      _in_open_file(0),
+      _in_entries_v(),
       _out_group_v(),
       _key_list(),
       _product_ctr(0),
@@ -213,13 +215,16 @@ bool IOManager::initialize(int color) {
   // Get the rank of the process
   MPI_Comm_rank(_private_comm, &_private_rank);
 
+  MPI_Info info;
+  MPI_Info_create( &info);
+  // Set the file access properties for this comm to be MPI:
+  H5Pset_fapl_mpio(_fapl, _private_comm, info);
+
   if (_io_mode != kREAD && _private_size != 1){
     LARCV_CRITICAL() << "Only read only mode is compatible with MPI with more than one rank!" << std::endl;
     throw larbys();
   }
-
 #endif
-
 
 
 
@@ -611,19 +616,13 @@ void IOManager::prepare_input() {
 void IOManager::open_new_input_file(std::string filename){
 
   // Close the currently open file if it is open:
+  close_input_file();
   // H5Fclose(_in_open_file);
-
-
 
   try{
     _in_open_file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, _fapl);
   }
   catch ( ... ) {
-    LARCV_CRITICAL() << "Open attempt failed for a file: " << filename
-                     << std::endl;
-    throw larbys();
-  }
-  if (_in_open_file < 0){
     LARCV_CRITICAL() << "Open attempt failed for a file: " << filename
                      << std::endl;
     throw larbys();
@@ -1008,21 +1007,58 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
       group = iter->second;
     }
 
+    bool close_on_exception = false;
+
     try {
       _product_ptr_v[id]->deserialize(group, _in_index - _current_offset, _force_reopen_groups);
       _product_status_v[id] = kInputFileRead;
     }
     catch (...){
+      close_on_exception = true;
+    }
+
+#ifdef LARCV_MPI
+      // Need to sync all close_on_exception in mpi, if needed:
+
+      // We use COMM_WORLD here because we want all ranks to stop if any has an exception,
+      // Even if reading separate files:
+
+      MPI_Allreduce(
+         &close_on_exception,   // void* send_data,
+         &close_on_exception,   // void* recv_data,
+         1,                     // int count,
+         MPI::BOOL,             // MPI_Datatype datatype,
+         MPI_LOR,               // MPI_Op op,
+         MPI_COMM_WORLD         // MPI_Comm communicator
+    );
+#endif
       // When there is an error in deserialization, close the open input file gracefully:
-      if(_io_mode != kWRITE){
-        LARCV_CRITICAL() << "Exception caught in deserialization, closing input file gracefully" << std::endl;
-        H5Fclose(_in_open_file);
-        // _in_open_file.close();
+      if (close_on_exception){
+        if(_io_mode != kWRITE){
+          LARCV_CRITICAL() << "Exception caught in deserialization, closing input file gracefully" << std::endl;
+          close_input_file();
+          // _in_open_file.close();
+        }
       }
     }
-  }
+
   __ioman_mtx.unlock();
   return _product_ptr_v[id];
+}
+
+void  IOManager::close_input_file(){
+
+    std::cout << "Called close input file" << std::endl;
+
+    // If no files are open, return:
+    if (_in_open_file){
+        close_all_objects(_in_open_file);
+        H5Fclose(_in_open_file);
+    }
+
+    // If using MPI, we need a collective here to make sure everyone closes together:
+
+
 }
 
 void IOManager::set_id(const long run, const long subrun,
@@ -1209,5 +1245,3 @@ void init_iomanager(pybind11::module m){
 
 
 #endif
-
-

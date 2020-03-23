@@ -51,6 +51,12 @@ class queue_interface(object):
     def no_warnings(self):
         self._warning = False
 
+    def __del__(self):
+        print("Deleting!")
+        for mode in self._queueloaders:
+            while self._queueloaders[mode].is_reading():
+                time.sleep(0.01)
+
     def get_next_batch_indexes(self, mode, minibatch_size):
 
         # Using the random_access parameter, determine which entries to read:

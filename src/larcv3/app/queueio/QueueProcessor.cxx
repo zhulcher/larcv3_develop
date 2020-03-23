@@ -31,13 +31,22 @@ int omp_thread_count() {
     , _configured(false)
     , _batch_global_counter(0)
   {
-    
+
     std::future<bool> f = std::async(std::launch::deferred, [](){return true;});
     _preparation_future = std::move(f);
   }
 
   QueueProcessor::~QueueProcessor()
-  { reset(); }
+  {
+      std::cout << "Entering destructor" << std::endl;
+      // Don't let the destructor do anything if processing:
+      _preparation_future.wait();
+      while (_processing){
+
+      }
+      reset();
+
+  }
 
   const std::string& QueueProcessor::storage_name(size_t process_id) const
   {
@@ -329,7 +338,7 @@ int omp_thread_count() {
     return;
 
   }
-  
+
   bool QueueProcessor::batch_process() {
 
     LARCV_DEBUG() << " start" << std::endl;
@@ -510,7 +519,7 @@ int omp_thread_count() {
 #include <pybind11/stl.h>
 
 void init_queueprocessor(pybind11::module m){
-  
+
   using Class = larcv3::QueueProcessor;
   pybind11::class_<Class> queueproc(m, "QueueProcessor");
 
@@ -520,11 +529,11 @@ void init_queueprocessor(pybind11::module m){
   queueproc.def("batch_process",          &Class::batch_process);
   queueproc.def("prepare_next",     &Class::prepare_next);
   queueproc.def("reset",     &Class::reset);
-  queueproc.def("configure",   
+  queueproc.def("configure",
     (void (Class::*)(const std::string, int)) (&Class::configure),
     pybind11::arg("config_file"),
     pybind11::arg("color")=0);
-  queueproc.def("configure",         
+  queueproc.def("configure",
     (void (Class::*)(const larcv3::PSet&, int)) (&Class::configure),
     pybind11::arg("cfg"),
     pybind11::arg("color")=0);
