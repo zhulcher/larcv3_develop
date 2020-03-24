@@ -40,10 +40,8 @@ int omp_thread_count() {
   {
       std::cout << "Entering destructor" << std::endl;
       // Don't let the destructor do anything if processing:
+      cancellation_token = true;
       _preparation_future.wait();
-      while (_processing){
-
-      }
       reset();
 
   }
@@ -330,8 +328,11 @@ int omp_thread_count() {
 
 
     _processing = true;
+    cancellation_token = false;
     std::future<bool> fut = std::async(std::launch::async,
-                                       &QueueProcessor::batch_process, this);
+                                       &QueueProcessor::batch_process, 
+                                       this,
+                                       std::ref(cancellation_token));
 
     _preparation_future = std::move(fut);
 
@@ -339,9 +340,11 @@ int omp_thread_count() {
 
   }
 
-  bool QueueProcessor::batch_process() {
+  bool QueueProcessor::batch_process(const std::atomic_bool& cancelled) {
 
     LARCV_DEBUG() << " start" << std::endl;
+
+    if (cancelled) return false;
 
     // must be configured
     if (!_configured) {
@@ -354,20 +357,24 @@ int omp_thread_count() {
       return false;
     }
 
+    if (cancelled) return false;
     //
     // execute
     //
     _processing = true;
 
     set_batch_storage();
+    if (cancelled) return false;
 
     begin_batch();
+    if (cancelled) return false;
 
 
     _next_batch_entries_v.clear();
     _next_batch_entries_v.resize(_next_index_v.size());
     _next_batch_events_v.clear();
     _next_batch_events_v.resize(_next_index_v.size());
+    if (cancelled) return false;
 
     LARCV_INFO() << "Entering process loop" << std::endl;
     // auto start = std::chrono::steady_clock::now();
@@ -377,12 +384,14 @@ int omp_thread_count() {
 #endif
     // size_t i(0),
     size_t i_entry(0);
+    if (cancelled) return false;
 
     // #pragma omp parallel
     // {
     //   #pragma omp single
     //   {
         for(i_entry =0; i_entry < _next_index_v.size(); ++ i_entry){
+          if (cancelled) return false;
           // #pragma omp task
           // {
             auto & entry = _next_index_v[i_entry];
@@ -390,6 +399,7 @@ int omp_thread_count() {
 
             // bool good_status =
             _driver.process_entry(entry, true);
+            if (cancelled) return false;
             LARCV_INFO() << "Finished processing event id: " << _driver.event_id().event_key() << std::endl;
             _next_batch_entries_v.at(i_entry) = entry;
             _next_batch_events_v.at(i_entry) = _driver.event_id();
@@ -404,8 +414,10 @@ int omp_thread_count() {
 
     // std::cout << "Duration of omp loop: " << duration.count() << std::endl;
     // LARCV_DEBUG() << " end" << std::endl;
+    if (cancelled) return false;
 
     end_batch();
+    if (cancelled) return false;
 
     _processing = false;
 

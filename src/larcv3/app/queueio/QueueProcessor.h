@@ -36,7 +36,8 @@ namespace larcv3 {
     ~QueueProcessor();
 
     // Process a batch of entries, using _next_index_v to specify entries
-    bool batch_process();
+    // cancelled can be set to true from another thread to interrupt
+    bool batch_process(const std::atomic_bool& cancelled = false);
 
     // Spawn a thread to batch process and return immediately
     void prepare_next();
@@ -118,7 +119,10 @@ namespace larcv3 {
     std::vector<size_t> _next_batch_entries_v;
     std::vector<larcv3::EventID> _next_batch_events_v;
 
+    // Thread tracker for "prepare next"
     std::future<bool> _preparation_future;
+    // Boolean to cancel the "next" thread if destructed
+    std::atomic_bool cancellation_token;
 
   };
 

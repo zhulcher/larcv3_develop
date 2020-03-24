@@ -7,7 +7,9 @@ import socket, zlib
 import random
 
 import numpy
+
 from mpi4py import MPI
+
 
 from . queueloader    import larcv_queueio
 from . larcv_io_enums import ReadOption, RandomAccess

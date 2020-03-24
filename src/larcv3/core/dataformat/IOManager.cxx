@@ -76,7 +76,15 @@ IOManager::IOManager(std::string config_file, std::string name)
   configure(cfg);
 }
 
-IOManager::~IOManager(){}
+IOManager::~IOManager(){
+  std::cout << "Destructor called!" << std::endl;
+  // Wait for a lock before destructing:
+  const std::lock_guard<std::mutex> guard(__ioman_mtx);
+  std::cout << 'MPI_FINALIZED ? ' << MPI::Is_finalized() << std::endl;
+  // __ioman_mtx.lock();
+  // __ioman_mtx.unlock();
+
+}
 
 void IOManager::add_in_file(const std::string filename,
                             const std::string dirname) {
@@ -172,17 +180,16 @@ void IOManager::configure(const PSet& cfg) {
 
 bool IOManager::initialize(int color) {
   LARCV_DEBUG() << "start" << std::endl;
-  // Lock:
-  __ioman_mtx.lock();
 
-// If openmp, always intialize the lock:
-#ifdef LARCV_OPENMP
-  omp_init_lock(&__ioman_omp_lock);
-#endif
+
+// // If openmp, always intialize the lock:
+// #ifdef LARCV_OPENMP
+//   omp_init_lock(&__ioman_omp_lock);
+// #endif
 
 #ifdef LARCV_MPI
 //Only one thread calls MPI
-#pragma omp critical
+// #pragma omp critical
 
   int mpi_initialized;
   MPI_Initialized(&mpi_initialized);
@@ -229,7 +236,15 @@ bool IOManager::initialize(int color) {
 
 
   if (_io_mode != kREAD) {
-    if (_out_file_name.empty()) throw larbys("Must set output file name!");
+
+    // Lock:
+    std::cout << "Locking at initialize output" << std::endl;
+    __ioman_mtx.lock();
+
+    if (_out_file_name.empty()) {
+      __ioman_mtx.unlock();
+      throw larbys("Must set output file name!");
+    }
     LARCV_INFO() << "Opening an output file: " << _out_file_name << std::endl;
 
     // Using default file creation properties, default file access properties
@@ -279,7 +294,8 @@ bool IOManager::initialize(int color) {
         cparams,                         // hid_t dcpl_id IN: Dataset creation property list
         H5P_DEFAULT                      // hid_t dapl_id IN: Dataset access property list
       );
-
+    // Unlock for initialize output
+    __ioman_mtx.unlock();
   }
 
   if (_io_mode != kWRITE) {
@@ -332,7 +348,7 @@ bool IOManager::initialize(int color) {
   // _in_index = 0;
   _out_index = 0;
   _prepared = true;
-  __ioman_mtx.unlock();
+
 
 
   return true;
@@ -490,10 +506,14 @@ void IOManager::prepare_input() {
     // auto const& dname = _in_dir_v[i_file];
 
     LARCV_NORMAL() << "Opening a file in READ mode: " << fname << std::endl;
-    open_new_input_file(fname);
-    read_current_event_id();
+    open_new_input_file(fname); // uses locks
+    read_current_event_id();  //uses locks
 
     // Each file has (or should have) two groups: "Data" and "Events"
+    
+    // Lock:
+    std::cout << "Locking at open data and events" << std::endl;
+    __ioman_mtx.lock();
 
     try {
       H5Gopen(_in_open_file, "/Data", H5P_DEFAULT);
@@ -502,6 +522,7 @@ void IOManager::prepare_input() {
       LARCV_CRITICAL() << "File " << fname
                        << " does not appear to be a larcv3 file, exiting."
                        << std::endl;
+      __ioman_mtx.unlock();
       throw larbys();
     }
 
@@ -522,6 +543,9 @@ void IOManager::prepare_input() {
 
     LARCV_NORMAL() << "File " << fname << " has " << dims_current[0] << " entries"
                  << std::endl;
+
+    // Here, we are done with opens and creates, so unlock
+    __ioman_mtx.unlock();
 
     // Append the number of events:
     _in_entries_v.push_back(dims_current[0]);
@@ -606,6 +630,7 @@ void IOManager::prepare_input() {
 
   // Make sure the first file is open:
   if (_in_file_v.size() > 0)
+    // Uses locks:
     open_new_input_file(_in_file_v[0]);
 
 
@@ -614,13 +639,15 @@ void IOManager::prepare_input() {
 
 
 void IOManager::open_new_input_file(std::string filename){
-
+  std::cout << "Opening new input file" << std::endl;
   // Close the currently open file if it is open:
-  close_input_file();
+  close_input_file(); //(uses locks)
   // H5Fclose(_in_open_file);
 
   try{
+    __ioman_mtx.lock();
     _in_open_file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, _fapl);
+    __ioman_mtx.unlock();
   }
   catch ( ... ) {
     LARCV_CRITICAL() << "Open attempt failed for a file: " << filename
@@ -628,17 +655,18 @@ void IOManager::open_new_input_file(std::string filename){
     throw larbys();
   }
 
+  __ioman_mtx.lock();
   hid_t group = H5Gopen(_in_open_file, "Events", H5P_DEFAULT);
 
   hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
   _active_in_event_id_dataset   = H5Dopen(group, "event_id", dapl);
   _active_in_event_id_dataspace = H5Dget_space(_active_in_event_id_dataset);
+  __ioman_mtx.unlock();
 
 }
 
 bool IOManager::read_entry(const size_t index, bool force_reload) {
 
-  __ioman_mtx.lock();
 
   // Don't reopen groups unless absolutely necessary:
   _force_reopen_groups = false;
@@ -684,7 +712,7 @@ bool IOManager::read_entry(const size_t index, bool force_reload) {
     if (_this_file_index != _in_active_file_index) {
       // Open a new file for reading:
       _in_active_file_index = _this_file_index;
-      open_new_input_file(_in_file_v[_in_active_file_index]);
+      open_new_input_file(_in_file_v[_in_active_file_index]); // Uses locks
 
       LARCV_INFO() << "Opening new file for continued event reading"
                      << std::endl;
@@ -692,7 +720,7 @@ bool IOManager::read_entry(const size_t index, bool force_reload) {
     }
 
 
-    read_current_event_id();
+    read_current_event_id(); // uses locks
 
     // Make sure to reset all the data status:
     for (size_t id = 0; id < _product_status_v.size(); ++id){
@@ -708,13 +736,16 @@ bool IOManager::read_entry(const size_t index, bool force_reload) {
   }
   LARCV_DEBUG() << "Current input group index: " << _in_index << std::endl;
 
-  __ioman_mtx.unlock();
+
 
   return true;
 }
 
 void IOManager::read_current_event_id(){
       // Now, we can open the events folder and figure out what's what.
+
+    std::cout << "Locking at read_current_event_id" << std::endl;
+    __ioman_mtx.lock();
 
     hsize_t events_slab_dims[1];
     events_slab_dims[0] = 1;
@@ -724,13 +755,17 @@ void IOManager::read_current_event_id(){
     // for this file
     events_offset[0] = _in_index - _current_offset;
 
-    H5Sselect_hyperslab(_active_in_event_id_dataspace,
+    std::cout << "Current dataspace is " << _active_in_event_id_dataspace << std::endl;
+    std::cout << "Current file is " << _in_open_file << std::endl;
+    hid_t ierr = H5Sselect_hyperslab(_active_in_event_id_dataspace,
       H5S_SELECT_SET,
       events_offset,    // start
       NULL ,            // stride
       events_slab_dims, //count
       NULL              // block
       );
+
+    std::cout << "ierr is " << ierr << std::endl;
 
 
     // Define memory space:
@@ -747,6 +782,9 @@ void IOManager::read_current_event_id(){
       &(input_event_id)              // void * buf  OUT: Buffer to receive data read from file.
     );
     _event_id = input_event_id;
+    
+    std::cout << "Unlocking at read_current_event_id" << std::endl;
+    __ioman_mtx.unlock();
 }
 
 bool IOManager::save_entry() {
@@ -977,7 +1015,7 @@ std::shared_ptr<EventBase> IOManager::get_data(const std::string& type,
 }
 
 std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
-  __ioman_mtx.lock();
+
 
   LARCV_DEBUG() << "start" << std::endl;
 
@@ -996,6 +1034,7 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
     std::string group_name = _product_type_v[id];
     group_name = "Data/" + group_name + "_" + _producer_name_v[id] + "_group";
 
+    __ioman_mtx.lock();
 
     hid_t group;
     auto iter = _groups.find(group_name);
@@ -1016,6 +1055,8 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
     catch (...){
       close_on_exception = true;
     }
+    
+    __ioman_mtx.unlock();
 
 #ifdef LARCV_MPI
       // Need to sync all close_on_exception in mpi, if needed:
@@ -1024,7 +1065,7 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
       // Even if reading separate files:
 
       MPI_Allreduce(
-         &close_on_exception,   // void* send_data,
+         MPI_IN_PLACE,   // void* send_data,
          &close_on_exception,   // void* recv_data,
          1,                     // int count,
          MPI::BOOL,             // MPI_Datatype datatype,
@@ -1042,18 +1083,28 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
       }
     }
 
-  __ioman_mtx.unlock();
+
   return _product_ptr_v[id];
 }
 
 void  IOManager::close_input_file(){
 
+    // Acquire the lock before calling:
+
     std::cout << "Called close input file" << std::endl;
+
 
     // If no files are open, return:
     if (_in_open_file){
+        std::cout << "Trying to lock " << std::endl;
+        std::cout << "Locked" << std::endl;
         close_all_objects(_in_open_file);
+        __ioman_mtx.lock();
         H5Fclose(_in_open_file);
+        __ioman_mtx.unlock();
+    }
+    else {
+      std::cout << "Returning immediately" << std::endl;
     }
 
     // If using MPI, we need a collective here to make sure everyone closes together:
@@ -1100,6 +1151,11 @@ void IOManager::set_id() {
 }
 
 int IOManager::close_all_objects(hid_t fid) {
+
+  // Lock this whole function:
+  std::cout << "Locking at close all objects" << std::endl;
+  __ioman_mtx.lock();
+
   ssize_t cnt;
   int howmany;
   H5I_type_t ot;
@@ -1125,6 +1181,8 @@ int IOManager::close_all_objects(hid_t fid) {
     if (ot == H5I_GROUP) H5Gclose(anobj);
     if (ot == H5I_DATASET) H5Dclose(anobj);
   }
+  std::cout << "Unlocking at close all objects" << std::endl;
+  __ioman_mtx.unlock();
 
   return howmany;
 }
@@ -1133,18 +1191,15 @@ void IOManager::finalize() {
 
   if (_io_mode != kREAD) {
 
-
     close_all_objects(_out_file);
 
     LARCV_NORMAL() << "Closing output file" << std::endl;
     H5Fclose(_out_file);
   }
 
-
-  LARCV_INFO() << "Deleting data pointers" << std::endl;
-  // for (auto& p : _product_ptr_v) {
-  //   delete p;
-  // }
+  if (_io_mode != kWRITE) {
+    close_input_file();
+  }
 
   reset();
 }
