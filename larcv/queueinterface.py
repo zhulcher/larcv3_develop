@@ -5,7 +5,6 @@ import random
 
 
 import larcv
-from . batch_pydata   import batch_pydata
 from . larcv_io_enums import RandomAccess
 from . larcv_writer   import larcv_writer
 
@@ -40,6 +39,12 @@ class queue_interface(object):
 
     def no_warnings(self):
         self._warning = False
+
+    def __del__(self):
+
+        for mode in self._queueloaders:
+            while self.is_reading(mode): time.sleep(0.01)
+
 
     def get_next_batch_indexes(self, mode, minibatch_size):
 
@@ -302,162 +307,3 @@ class queue_interface(object):
 
         return
 
-
-class larcv_queueio (object):
-
-    _instance_m={}
-
-    @classmethod
-    def exist(cls,name):
-        name = str(name)
-        return name in cls._instance_m
-
-    @classmethod
-    def instance_by_name(cls,name):
-        return cls._instance_m[name]
-
-    def __init__(self):
-        self._proc = None
-        self._name = ''
-        self._verbose = False
-        self._read_start_time = None
-        self._read_end_time = None
-        self._cfg_file = None
-        self._storage = {}
-        self._event_entries = None
-        self._event_ids = None
-
-    def reset(self):
-        while self.is_reading(): 
-            print("Sleeping in larcv_queueio")
-            time.sleep(0.01)
-        if self._proc: self._proc.reset()
-
-    def __del__(self):
-        try:
-            self.reset()
-        except AttrbuteError:
-            pass
-
-    def stop(self):
-        self._proc.stop()
-
-    def configure(self,cfg, color=0):
-        # if "this" was configured before, reset it
-        if self._name: self.reset()
-
-        # get name
-        if not cfg['filler_name']:
-            sys.stderr.write('filler_name is empty!\n')
-            raise ValueError
-
-        # ensure unique name
-        if self.__class__.exist(cfg['filler_name']) and not self.__class__.instance_by_name(cfg['filler_name']) == self:
-            sys.stderr.write('filler_name %s already running!' % cfg['filler_name'])
-            return
-        self._name = cfg['filler_name']
-
-        # get QueueProcessor config file
-        self._cfg_file = cfg['filler_cfg']
-        if not self._cfg_file or not os.path.isfile(self._cfg_file):
-            sys.stderr.write('filler_cfg file does not exist: %s\n' % self._cfg_file)
-            raise ValueError
-
-        # set verbosity
-        if 'verbosity' in cfg:
-            self._verbose = bool(cfg['verbosity'])
-
-        # configure thread processor
-        self._proc = larcv.QueueProcessor(self._name)
-
-        self._proc.configure(self._cfg_file, color)
-
-        # fetch batch filler info
-        self._storage = {}
-        for i in range(len(self._proc.batch_fillers())):
-            pid = self._proc.batch_fillers()[i]
-            name = self._proc.storage_name(pid)
-            dtype = larcv.BatchDataTypeName(self._proc.batch_types()[i])
-            self._storage[name]=batch_pydata(dtype)
-            if 'make_copy' in cfg and cfg['make_copy']:
-                self._storage[name]._make_copy = True
-
-        # all success?
-        # register *this* instance
-        self.__class__._instance_m[self._name] = self
-
-    def set_next_batch(self, batch_indexes):
-        # if type(batch_indexes) != larcv.VectorOfSizet:
-        #     indexes = larcv.VectorOfSizet()
-        #     indexes.resize(len(batch_indexes))
-        #     for i, val in enumerate(batch_indexes):
-        #         indexes[i] = int(val)
-        #     batch_indexes = indexes
-        self._proc.set_next_batch(batch_indexes)
-
-    def batch_process(self):
-        while self.is_reading():
-            time.sleep(0.01)
-        self._proc.batch_process()
-
-
-    def prepare_next(self):
-        self._proc.prepare_next()
-
-    def is_reading(self,storage_id=None):
-        return self._proc.is_reading()
-
-    def pop_current_data(self):
-        # Promote the "next" data to current in C++ and release current
-        self._proc.pop_current_data()
-
-    def next(self,store_entries=False,store_event_ids=False):
-
-        # Calling next will load the next set of data into batch_pydata.  It does not do any
-        # automatic data loading or steping, you must do this manually.
-
-        for name,storage in self._storage.items():
-            dtype = storage.dtype()
-            if dtype == "float32":
-                factory = larcv.BatchDataQueueFactoryFloat.get()
-            elif dtype == "float64":
-                factory = larcv.BatchDataQueueFactoryDouble.get()
-            elif dtype == "int":
-                factory = larcv.BatchDataQueueFactoryInt.get()
-            # These here below are NOT yet wrapped with swig.  Submit a ticket if you need them!
-            # elif dtype == "char":
-            #    factory = larcv.BatchDataQueueFactoryDouble.get()
-            # elif dtype == "short":
-            #    factory = larcv.BatchDataQueueFactoryDouble.get()
-            # elif dtype == "string":
-            #    factory = larcv.BatchDataQueueFactoryDouble.get()
-            else:
-                factory = None
-            batch_storage = factory.get_queue(name)
-
-            batch_data = factory.get_queue(name).get_batch()
-            storage.set_data(storage_id=name, larcv_batchdata=batch_data)
-
-        if not store_entries: self._event_entries = None
-        else: self._event_entries = self._proc.processed_entries()
-
-        if not store_event_ids: self._event_ids = None
-        else: self._event_ids = self._proc.processed_events()
-
-        return
-
-    def fetch_data(self,key):
-        try:
-            return self._storage[key]
-        except KeyError:
-            sys.stderr.write('Cannot fetch data w/ key %s (unknown)\n' % key)
-            return
-
-    def fetch_event_ids(self):
-        return self._event_ids
-
-    def fetch_entries(self):
-        return self._event_entries
-
-    def fetch_n_entries(self):
-        return self._proc.get_n_entries()

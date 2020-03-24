@@ -5,9 +5,13 @@ import copy
 from collections import OrderedDict
 import socket, zlib
 import random
+import atexit
 
 import numpy
 
+
+import mpi4py
+mpi4py.rc.thread_level = "multiple"
 from mpi4py import MPI
 
 
@@ -27,7 +31,7 @@ class queue_interface(object):
 
         Not much to store here, just a dict of dataloaders and the keys to access their data.
 
-        Queue loaders are manually triggered IO, not always running, so
+        Queue loaders are manually triggered IO, not always running
         '''
         object.__init__(self)
         self._queueloaders  = {}
@@ -50,14 +54,19 @@ class queue_interface(object):
         self._queue_prev_entries = {}
         self._queue_next_entries = {}
 
+        atexit.register(self.stop)
+
     def no_warnings(self):
         self._warning = False
 
     def __del__(self):
-        print("Deleting!")
         for mode in self._queueloaders:
             while self._queueloaders[mode].is_reading():
-                time.sleep(0.01)
+                print("sleeping!")
+                time.sleep(0.1)
+
+
+
 
     def get_next_batch_indexes(self, mode, minibatch_size):
 
@@ -295,12 +304,15 @@ class queue_interface(object):
     def stop(self):
 
         for mode in self._queueloaders:
-            while self._queueloaders[mode].is_reading():
-                time.sleep(0.01)
-            self._queueloaders[mode].stop_manager()
+            self._queueloaders[mode].stop()
+            # while self._queueloaders[mode].is_reading():
+            #     time.sleep(0.01)
+            # self._queueloaders[mode].stop_manager()
 
-        if self._writer is not None:
-            self._writer.finalize()
+        # if self._writer is not None:
+        #     self._writer.finalize()
+
+
 
     def size(self, mode):
         # return the number of images in the specified mode:

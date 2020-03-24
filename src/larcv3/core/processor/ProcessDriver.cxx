@@ -476,7 +476,7 @@ void ProcessDriver::finalize() {
   LARCV_INFO() << "Finalizing IO..." << std::endl;
   _io.finalize();
   LARCV_INFO() << "Resetting..." << std::endl;
-  reset();
+  // reset();
 }
 
 size_t ProcessDriver::get_tree_index(size_t entry) const {

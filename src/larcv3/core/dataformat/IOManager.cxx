@@ -42,7 +42,7 @@ IOManager::IOManager(IOMode_t mode, std::string name)
       _producer_name_v(),
       _h5_core_driver(false),
       _force_reopen_groups(false) {
-  reset();
+  // reset();
   _fapl = H5Pcreate(H5P_FILE_ACCESS);
   xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
   _event_id_datatype = larcv3::EventID::get_datatype();
@@ -77,10 +77,8 @@ IOManager::IOManager(std::string config_file, std::string name)
 }
 
 IOManager::~IOManager(){
-  std::cout << "Destructor called!" << std::endl;
   // Wait for a lock before destructing:
   const std::lock_guard<std::mutex> guard(__ioman_mtx);
-  std::cout << 'MPI_FINALIZED ? ' << MPI::Is_finalized() << std::endl;
   // __ioman_mtx.lock();
   // __ioman_mtx.unlock();
 
@@ -196,6 +194,11 @@ bool IOManager::initialize(int color) {
 
   if (!mpi_initialized){
     int ierr = MPI_Init(NULL, NULL) ;
+    if (ierr < 0){
+      LARCV_CRITICAL() << "Tried to initialize MPI and failed!" << std::endl;
+      throw larbys();
+    }
+
   }
 
   // Get the number of processes
@@ -238,7 +241,6 @@ bool IOManager::initialize(int color) {
   if (_io_mode != kREAD) {
 
     // Lock:
-    std::cout << "Locking at initialize output" << std::endl;
     __ioman_mtx.lock();
 
     if (_out_file_name.empty()) {
@@ -512,7 +514,6 @@ void IOManager::prepare_input() {
     // Each file has (or should have) two groups: "Data" and "Events"
     
     // Lock:
-    std::cout << "Locking at open data and events" << std::endl;
     __ioman_mtx.lock();
 
     try {
@@ -639,7 +640,6 @@ void IOManager::prepare_input() {
 
 
 void IOManager::open_new_input_file(std::string filename){
-  std::cout << "Opening new input file" << std::endl;
   // Close the currently open file if it is open:
   close_input_file(); //(uses locks)
   // H5Fclose(_in_open_file);
@@ -719,7 +719,6 @@ bool IOManager::read_entry(const size_t index, bool force_reload) {
       _force_reopen_groups = true;
     }
 
-
     read_current_event_id(); // uses locks
 
     // Make sure to reset all the data status:
@@ -744,7 +743,6 @@ bool IOManager::read_entry(const size_t index, bool force_reload) {
 void IOManager::read_current_event_id(){
       // Now, we can open the events folder and figure out what's what.
 
-    std::cout << "Locking at read_current_event_id" << std::endl;
     __ioman_mtx.lock();
 
     hsize_t events_slab_dims[1];
@@ -755,17 +753,14 @@ void IOManager::read_current_event_id(){
     // for this file
     events_offset[0] = _in_index - _current_offset;
 
-    std::cout << "Current dataspace is " << _active_in_event_id_dataspace << std::endl;
-    std::cout << "Current file is " << _in_open_file << std::endl;
     hid_t ierr = H5Sselect_hyperslab(_active_in_event_id_dataspace,
       H5S_SELECT_SET,
       events_offset,    // start
       NULL ,            // stride
-      events_slab_dims, //count
+      events_slab_dims, // count
       NULL              // block
       );
 
-    std::cout << "ierr is " << ierr << std::endl;
 
 
     // Define memory space:
@@ -783,7 +778,6 @@ void IOManager::read_current_event_id(){
     );
     _event_id = input_event_id;
     
-    std::cout << "Unlocking at read_current_event_id" << std::endl;
     __ioman_mtx.unlock();
 }
 
@@ -1091,21 +1085,16 @@ void  IOManager::close_input_file(){
 
     // Acquire the lock before calling:
 
-    std::cout << "Called close input file" << std::endl;
 
 
     // If no files are open, return:
     if (_in_open_file){
-        std::cout << "Trying to lock " << std::endl;
-        std::cout << "Locked" << std::endl;
         close_all_objects(_in_open_file);
         __ioman_mtx.lock();
         H5Fclose(_in_open_file);
         __ioman_mtx.unlock();
     }
-    else {
-      std::cout << "Returning immediately" << std::endl;
-    }
+
 
     // If using MPI, we need a collective here to make sure everyone closes together:
 
@@ -1153,7 +1142,6 @@ void IOManager::set_id() {
 int IOManager::close_all_objects(hid_t fid) {
 
   // Lock this whole function:
-  std::cout << "Locking at close all objects" << std::endl;
   __ioman_mtx.lock();
 
   ssize_t cnt;
@@ -1181,14 +1169,12 @@ int IOManager::close_all_objects(hid_t fid) {
     if (ot == H5I_GROUP) H5Gclose(anobj);
     if (ot == H5I_DATASET) H5Dclose(anobj);
   }
-  std::cout << "Unlocking at close all objects" << std::endl;
   __ioman_mtx.unlock();
 
   return howmany;
 }
 
 void IOManager::finalize() {
-
   if (_io_mode != kREAD) {
 
     close_all_objects(_out_file);
@@ -1201,7 +1187,7 @@ void IOManager::finalize() {
     close_input_file();
   }
 
-  reset();
+  // reset();
 }
 
 void IOManager::reset() {

@@ -37,13 +37,15 @@ namespace larcv3 {
 
     // Process a batch of entries, using _next_index_v to specify entries
     // cancelled can be set to true from another thread to interrupt
-    bool batch_process(const std::atomic_bool& cancelled = false);
+    bool batch_process();
 
     // Spawn a thread to batch process and return immediately
     void prepare_next();
 
     // Reset the state
     void reset();
+
+    void stop();
 
     // configure the processor from a file on disk
     void configure(const std::string config_file, int color=0);
@@ -121,8 +123,6 @@ namespace larcv3 {
 
     // Thread tracker for "prepare next"
     std::future<bool> _preparation_future;
-    // Boolean to cancel the "next" thread if destructed
-    std::atomic_bool cancellation_token;
 
   };
 

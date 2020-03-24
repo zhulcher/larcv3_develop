@@ -15,14 +15,6 @@
 #endif
 
 namespace larcv3 {
-#ifdef LARCV_OPENMP
-int omp_thread_count() {
-    int n = 0;
-    #pragma omp parallel reduction(+:n)
-    n += 1;
-    return n;
-}
-#endif
 
 
   QueueProcessor::QueueProcessor(std::string name)
@@ -38,12 +30,14 @@ int omp_thread_count() {
 
   QueueProcessor::~QueueProcessor()
   {
-      std::cout << "Entering destructor" << std::endl;
+      this->stop();
       // Don't let the destructor do anything if processing:
-      cancellation_token = true;
-      _preparation_future.wait();
       reset();
 
+  }
+
+  void QueueProcessor::stop(){
+      _preparation_future.wait();
   }
 
   const std::string& QueueProcessor::storage_name(size_t process_id) const
@@ -328,11 +322,9 @@ int omp_thread_count() {
 
 
     _processing = true;
-    cancellation_token = false;
     std::future<bool> fut = std::async(std::launch::async,
                                        &QueueProcessor::batch_process, 
-                                       this,
-                                       std::ref(cancellation_token));
+                                       this);
 
     _preparation_future = std::move(fut);
 
@@ -340,11 +332,10 @@ int omp_thread_count() {
 
   }
 
-  bool QueueProcessor::batch_process(const std::atomic_bool& cancelled) {
+  bool QueueProcessor::batch_process() {
 
     LARCV_DEBUG() << " start" << std::endl;
 
-    if (cancelled) return false;
 
     // must be configured
     if (!_configured) {
@@ -357,41 +348,33 @@ int omp_thread_count() {
       return false;
     }
 
-    if (cancelled) return false;
     //
     // execute
     //
     _processing = true;
 
     set_batch_storage();
-    if (cancelled) return false;
 
     begin_batch();
-    if (cancelled) return false;
 
 
     _next_batch_entries_v.clear();
     _next_batch_entries_v.resize(_next_index_v.size());
     _next_batch_events_v.clear();
     _next_batch_events_v.resize(_next_index_v.size());
-    if (cancelled) return false;
 
     LARCV_INFO() << "Entering process loop" << std::endl;
     // auto start = std::chrono::steady_clock::now();
 
-#ifdef LARCV_OPENMP
-    std::cout << "Number of threads: " << omp_thread_count() << std::endl;
-#endif
+
     // size_t i(0),
     size_t i_entry(0);
-    if (cancelled) return false;
 
     // #pragma omp parallel
     // {
     //   #pragma omp single
     //   {
         for(i_entry =0; i_entry < _next_index_v.size(); ++ i_entry){
-          if (cancelled) return false;
           // #pragma omp task
           // {
             auto & entry = _next_index_v[i_entry];
@@ -399,7 +382,6 @@ int omp_thread_count() {
 
             // bool good_status =
             _driver.process_entry(entry, true);
-            if (cancelled) return false;
             LARCV_INFO() << "Finished processing event id: " << _driver.event_id().event_key() << std::endl;
             _next_batch_entries_v.at(i_entry) = entry;
             _next_batch_events_v.at(i_entry) = _driver.event_id();
@@ -414,10 +396,8 @@ int omp_thread_count() {
 
     // std::cout << "Duration of omp loop: " << duration.count() << std::endl;
     // LARCV_DEBUG() << " end" << std::endl;
-    if (cancelled) return false;
 
     end_batch();
-    if (cancelled) return false;
 
     _processing = false;
 
@@ -538,9 +518,9 @@ void init_queueprocessor(pybind11::module m){
   queueproc.def(pybind11::init<std::string>(),
     pybind11::arg("name") = "QueueProcessor");
 
-  queueproc.def("batch_process",          &Class::batch_process);
+  queueproc.def("batch_process",    &Class::batch_process);
   queueproc.def("prepare_next",     &Class::prepare_next);
-  queueproc.def("reset",     &Class::reset);
+  queueproc.def("reset",            &Class::reset);
   queueproc.def("configure",
     (void (Class::*)(const std::string, int)) (&Class::configure),
     pybind11::arg("config_file"),
@@ -549,19 +529,20 @@ void init_queueprocessor(pybind11::module m){
     (void (Class::*)(const larcv3::PSet&, int)) (&Class::configure),
     pybind11::arg("cfg"),
     pybind11::arg("color")=0);
-  queueproc.def("configured",         &Class::configured);
-  queueproc.def("pop_current_data",         &Class::pop_current_data);
-  queueproc.def("set_next_index",         &Class::set_next_index);
-  queueproc.def("set_next_batch",         &Class::set_next_batch);
-  queueproc.def("is_reading",         &Class::is_reading);
-  queueproc.def("get_n_entries",         &Class::get_n_entries);
-  queueproc.def("processed_entries",         &Class::processed_entries);
-  queueproc.def("processed_events",         &Class::processed_events);
-  queueproc.def("pd",         &Class::pd);
-  queueproc.def("storage_name",         &Class::storage_name);
-  queueproc.def("process_id",         &Class::process_id);
-  queueproc.def("batch_fillers",         &Class::batch_fillers);
-  queueproc.def("batch_types",         &Class::batch_types);
+  queueproc.def("configured",        &Class::configured);
+  queueproc.def("pop_current_data",  &Class::pop_current_data);
+  queueproc.def("set_next_index",    &Class::set_next_index);
+  queueproc.def("set_next_batch",    &Class::set_next_batch);
+  queueproc.def("is_reading",        &Class::is_reading);
+  queueproc.def("get_n_entries",     &Class::get_n_entries);
+  queueproc.def("processed_entries", &Class::processed_entries);
+  queueproc.def("processed_events",  &Class::processed_events);
+  queueproc.def("pd",                &Class::pd);
+  queueproc.def("storage_name",      &Class::storage_name);
+  queueproc.def("process_id",        &Class::process_id);
+  queueproc.def("batch_fillers",     &Class::batch_fillers);
+  queueproc.def("batch_types",       &Class::batch_types);
+  queueproc.def("stop",              &Class::stop);
 
 
 }
