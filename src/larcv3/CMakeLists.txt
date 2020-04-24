@@ -32,6 +32,13 @@ if (MPI_FOUND)
 endif()
 set(HDF5_PREFER_PARALLEL TRUE)
 message("Using hdf5 parallel: " ${HDF5_IS_PARALLEL})
+
+# Set a compile flag to know if we have parallel hdf5:
+if (HDF5_IS_PARALLEL)
+    add_definitions(-DLARCV_HDF5_PARALLEL)
+endif()
+
+
 target_link_libraries(larcv3 ${HDF5_LIBRARIES})
 
 # Link against python:
@@ -90,4 +97,3 @@ if(CMAKE_PYTHON_BINDINGS)
         # INCLUDES DESTINATION ${CMAKE_PACKAGE_DIR}/include
         )
 endif(CMAKE_PYTHON_BINDINGS)
-

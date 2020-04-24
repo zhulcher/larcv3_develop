@@ -227,8 +227,10 @@ bool IOManager::initialize(int color) {
 
   MPI_Info info;
   MPI_Info_create( &info);
+#ifdef LARCV_HDF5_PARALLEL
   // Set the file access properties for this comm to be MPI:
   H5Pset_fapl_mpio(_fapl, _private_comm, info);
+#endif
 
   if (_io_mode != kREAD && _private_size != 1){
     LARCV_CRITICAL() << "Only read only mode is compatible with MPI with more than one rank!" << std::endl;
@@ -512,7 +514,7 @@ void IOManager::prepare_input() {
     read_current_event_id();  //uses locks
 
     // Each file has (or should have) two groups: "Data" and "Events"
-    
+
     // Lock:
     __ioman_mtx.lock();
 
@@ -777,7 +779,7 @@ void IOManager::read_current_event_id(){
       &(input_event_id)              // void * buf  OUT: Buffer to receive data read from file.
     );
     _event_id = input_event_id;
-    
+
     __ioman_mtx.unlock();
 }
 
@@ -1049,7 +1051,7 @@ std::shared_ptr<EventBase> IOManager::get_data(const size_t id) {
     catch (...){
       close_on_exception = true;
     }
-    
+
     __ioman_mtx.unlock();
 
 #ifdef LARCV_MPI
