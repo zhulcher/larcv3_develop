@@ -4,16 +4,16 @@ import threading
 import random
 
 
-from . import larcv
+import larcv
 from . batch_pydata   import batch_pydata
 from . larcv_io_enums import RandomAccess
 from . larcv_writer   import larcv_writer
 
 class queue_interface(object):
 
-    def __init__(self, verbose=False, random_access_mode="random_blocks"):
+    def __init__(self, verbose=False, random_access_mode="random_blocks", seed=None):
         '''init function
-        
+
         Not much to store here, just a dict of dataloaders and the keys to access their data.
 
         Queue loaders are manually triggered IO, not always running, so
@@ -30,6 +30,9 @@ class queue_interface(object):
         self._queue_next_entries = {}
         self._count = {}
 
+        if seed is not None:
+            random.seed(seed)
+            numpy.random.seed(seed)
 
         self._warning = True
 
@@ -79,12 +82,12 @@ class queue_interface(object):
             n_choices = n_entries - minibatch_size - 1
             start_entry = numpy.random.randint(low=0, high=n_choices, size=1)
             next_entries = numpy.arange(minibatch_size) + start_entry
-       
+
         else:  # self._random_access == RandomAccess.random_events
             # Choose randomly, but require unique indexes:
             n_entries = self._queueloaders[mode].fetch_n_entries()
             next_entries = random.sample(range(n_entries), minibatch_size)
-        
+
 
         self._queue_next_entries[mode] = next_entries
 
@@ -113,14 +116,14 @@ class queue_interface(object):
 
     def prepare_manager(self, mode, io_config, minibatch_size, data_keys, color=None):
         '''Prepare a manager for io
-        
+
         Creates an instance of larcv_threadio for a particular file to read.
-        
+
         Arguments:
             mode {str} -- The mode of training to store this threadio under (typically "train" or "TEST" or similar)
             io_config {dict} -- the io config dictionary.  Required keys are: 'filler_name', 'verbosity', and 'filler_cfg'
             data_keys_override {dict} -- If desired, you can override the keys for dataacces,
-        
+
         Raises:
             Exception -- [description]
         '''
@@ -147,9 +150,18 @@ class queue_interface(object):
         # there is no "start_manager" function.  Everything is manual.
         # First, tell it what the entries for the first batch to read:
 
+        # start = time.time()
+        # print(self._queueloaders[mode].is_reading())
         self.prepare_next(mode)
+        # print(self._queueloaders[mode].is_reading())
+        # end = time.time()
 
+        # print(end - start)
         # Then, we promote those entries to the "current" batch:
+        while self._queueloaders[mode].is_reading():
+            # print(self._queueloaders[mode].is_reading())
+            time.sleep(0.01)
+
         io.pop_current_data()
         io.next(store_entries=True,store_event_ids=True)
 
@@ -157,14 +169,14 @@ class queue_interface(object):
 
         # Store the keys for accessing this datatype:
         self._data_keys[mode] = data_keys
-    
+
         # Read and save the dimensions of the data:
         self._dims[mode] = {}
         for key in self._data_keys[mode]:
             self._dims[mode][key] = self._queueloaders[mode].fetch_data(self._data_keys[mode][key]).dim()
 
-
         end = time.time()
+        self.prepare_next(mode)
 
         # Print out how long it took to start IO:
         if self._verbose:
@@ -197,9 +209,9 @@ class queue_interface(object):
 
     def prepare_next(self, mode, set_entries = None):
         '''Set in motion the processing of the next batch of data.
-        
+
         Triggers the queue loader to start reading the next set of data
-        
+
 
         '''
         # Which events should we read?
@@ -207,7 +219,7 @@ class queue_interface(object):
             set_entries = self.get_next_batch_indexes(mode, self._minibatch_size[mode])
 
         self._queueloaders[mode].set_next_batch(set_entries)
-        self._queueloaders[mode].batch_process()
+        self._queueloaders[mode].prepare_next()
 
         self._count[mode] = 0
 
@@ -218,10 +230,10 @@ class queue_interface(object):
 
         # return
 
-    def fetch_minibatch_data(self, mode, pop=False, fetch_meta_data=False):
+    def fetch_minibatch_data(self, mode, pop=False, fetch_meta_data=False, data_shape=None, channels="last"):
         # Return a dictionary object with keys 'image', 'label', and others as needed
         # self._queueloaders['train'].fetch_data(keyword_label).dim() as an example
-        
+
         if self._count[mode] != 0:
             if self._warning:
                 print("Calling fetch_minibatch_data without calling prepare_next. This will not give new data.")
@@ -239,17 +251,22 @@ class queue_interface(object):
 
         self._queueloaders[mode].next(store_entries=fetch_meta_data, store_event_ids=fetch_meta_data)
         this_data = {}
-        
+
+        self.fetch_minibatch_dims(mode)
+
         for key in self._data_keys[mode]:
-            this_data[key] = self._queueloaders[mode].fetch_data(self._data_keys[mode][key]).data()
-            this_data[key] = numpy.reshape(this_data[key], self._dims[mode][key])
+            # self._dims[mode][key] = self._queueloaders[mode].fetch_data(self._data_keys[mode][key]).dim()
+            this_data[key] = self._queueloaders[mode].fetch_data(
+                self._data_keys[mode][key]).data(
+                shape=data_shape, channels=channels)
+            # this_data[key] = numpy.reshape(this_data[key], self._dims[mode][key])
 
         if fetch_meta_data:
             this_data['entries'] = self._queueloaders[mode].fetch_entries()
             this_data['event_ids'] = self._queueloaders[mode].fetch_event_ids()
-        
+
         self._count[mode] += 1
-        
+
         return this_data
 
     def fetch_minibatch_dims(self, mode):
@@ -272,8 +289,8 @@ class queue_interface(object):
         return self._queueloaders[mode].fetch_n_entries()
 
 
-    def ready(self, mode):
-        return self._queueloaders[mode].ready()
+    def is_reading(self, mode):
+        return self._queueloaders[mode].is_reading()
 
 
     def write_output(self, data, datatype, producer, entries, event_ids):
@@ -311,6 +328,7 @@ class larcv_queueio (object):
         self._event_ids = None
 
     def reset(self):
+        while self.is_reading(): time.sleep(0.01)
         if self._proc: self._proc.reset()
 
     def __del__(self):
@@ -322,7 +340,7 @@ class larcv_queueio (object):
     def configure(self,cfg, color=0):
         # if "this" was configured before, reset it
         if self._name: self.reset()
-         
+
         # get name
         if not cfg['filler_name']:
             sys.stderr.write('filler_name is empty!\n')
@@ -332,18 +350,18 @@ class larcv_queueio (object):
         if self.__class__.exist(cfg['filler_name']) and not self.__class__.instance_by_name(cfg['filler_name']) == self:
             sys.stderr.write('filler_name %s already running!' % cfg['filler_name'])
             return
-        self._name = cfg['filler_name']         
+        self._name = cfg['filler_name']
 
         # get QueueProcessor config file
         self._cfg_file = cfg['filler_cfg']
         if not self._cfg_file or not os.path.isfile(self._cfg_file):
             sys.stderr.write('filler_cfg file does not exist: %s\n' % self._cfg_file)
             raise ValueError
-     
+
         # set verbosity
         if 'verbosity' in cfg:
             self._verbose = bool(cfg['verbosity'])
-  
+
         # configure thread processor
         self._proc = larcv.QueueProcessor(self._name)
 
@@ -364,12 +382,12 @@ class larcv_queueio (object):
         self.__class__._instance_m[self._name] = self
 
     def set_next_batch(self, batch_indexes):
-        if type(batch_indexes) != larcv.VectorOfSizet:
-            indexes = larcv.VectorOfSizet()
-            indexes.resize(len(batch_indexes))
-            for i, val in enumerate(batch_indexes):
-                indexes[i] = int(val)
-            batch_indexes = indexes
+        # if type(batch_indexes) != larcv.VectorOfSizet:
+        #     indexes = larcv.VectorOfSizet()
+        #     indexes.resize(len(batch_indexes))
+        #     for i, val in enumerate(batch_indexes):
+        #         indexes[i] = int(val)
+        #     batch_indexes = indexes
         self._proc.set_next_batch(batch_indexes)
 
     def batch_process(self):
@@ -378,16 +396,19 @@ class larcv_queueio (object):
         self._proc.batch_process()
 
 
+    def prepare_next(self):
+        self._proc.prepare_next()
+
     def is_reading(self,storage_id=None):
         return self._proc.is_reading()
-        
+
     def pop_current_data(self):
         # Promote the "next" data to current in C++ and release current
         self._proc.pop_current_data()
 
     def next(self,store_entries=False,store_event_ids=False):
 
-        # Calling next will load the next set of data into batch_pydata.  It does not do any 
+        # Calling next will load the next set of data into batch_pydata.  It does not do any
         # automatic data loading or steping, you must do this manually.
 
         for name,storage in self._storage.items():
@@ -418,7 +439,7 @@ class larcv_queueio (object):
         if not store_event_ids: self._event_ids = None
         else: self._event_ids = self._proc.processed_events()
 
-        return 
+        return
 
     def fetch_data(self,key):
         try:
@@ -435,6 +456,3 @@ class larcv_queueio (object):
 
     def fetch_n_entries(self):
         return self._proc.get_n_entries()
-
-
-

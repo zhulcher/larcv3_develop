@@ -2,7 +2,7 @@
  * \file larcv_logger.h
  *
  * \ingroup core_Base
- * 
+ *
  * \brief larcv3::logger utility class definition header file.
  *
  * @author Kazu - Nevis 2015
@@ -17,6 +17,8 @@
 #include <cstdio>
 #include <iostream>
 #include <map>
+
+
 #include "larcv3/core/base/LArCVTypes.h"
 
 namespace larcv3 {
@@ -28,29 +30,29 @@ namespace larcv3 {
      A static getter method is provided to create a sharable logger instance (see larcv_base for useage). \n
   */
   class logger{
-    
+
   public:
-    
+
     /// Default constructor
     logger(const std::string& name="no_name")
       : _ostrm(&std::cout)
       , _name(name)
     {}
-    
+
     /// Default destructor
     virtual ~logger(){};
-    
+
   private:
-    
+
     /// ostream
     std::ostream *_ostrm;
-    
+
     /// Level
     msg::Level_t _level;
-      
+
     /// Name
     std::string _name;
-    
+
     /// Set of loggers
     static std::map<std::string,larcv3::logger> *_logger_m;
 
@@ -59,7 +61,7 @@ namespace larcv3 {
 
     /// Default logger level
     static msg::Level_t _level_default;
-    
+
   public:
 
     /// Logger's name
@@ -78,8 +80,8 @@ namespace larcv3 {
       if(_name > rhs.name()) return false;
       return false;
     }
-    
-    /// Getter of a message instance 
+
+    /// Getter of a message instance
     static logger& get(const std::string name)
     {
       if(!_logger_m) _logger_m = new std::map<std::string,larcv3::logger>();
@@ -103,7 +105,7 @@ namespace larcv3 {
       default_level(l);
       for(auto& name_logger : *_logger_m) name_logger.second.set(l);
     }
-	
+
     //
     // Verbosity level checker
     //
@@ -116,19 +118,27 @@ namespace larcv3 {
     std::ostream& send(const msg::Level_t) const;
     /// Formatted message (function name included)
     std::ostream& send(const msg::Level_t level,
-		       const std::string& function ) const;
+                       const std::string& function ) const;
     /// Formatted message (function name + line number)
     std::ostream& send(const msg::Level_t level,
-		       const std::string& function,
-		       const unsigned int line_num ) const;
+                       const std::string& function,
+                       const unsigned int line_num ) const;
     /// Formatted message (function name + line number + file name)
     std::ostream& send(const msg::Level_t level,
-		       const std::string& function,
-		       const unsigned int line_num,
-		       const std::string& file_name) const;
-    
+                       const std::string& function,
+                       const unsigned int line_num,
+                       const std::string& file_name) const;
+
   };
 }
+
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+// Wrapper init function:
+void init_logger(pybind11::module m);
+#endif
+
+
 //
 // Compiler macro for saving us from text typing
 //
@@ -151,6 +161,6 @@ namespace larcv3 {
 #define LARCV_SWARNING()  if(larcv3::logger::get_shared().warning())  larcv3::logger::get_shared().send(::larcv3::msg::kWARNING,  __FUNCTION__                  )
 #define LARCV_SERROR()    if(larcv3::logger::get_shared().error())    larcv3::logger::get_shared().send(::larcv3::msg::kERROR,    __FUNCTION__,__LINE__         )
 #define LARCV_SCRITICAL() larcv3::logger::get_shared().send(::larcv3::msg::kCRITICAL, __FUNCTION__,__LINE__,__FILE__)
-  
+
 /** @} */ // end of doxygen group logger
 #endif

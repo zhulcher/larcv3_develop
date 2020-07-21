@@ -2,15 +2,15 @@
 #define __LARCV3DATAFORMAT_DATAFORMATTYPES_H__
 
 #include "larcv3/core/base/LArCVTypes.h"
-#include "hdf5.h"
 #include <vector>
 #include <set>
+#include "hdf5.h"
 
 namespace larcv3 {
 
   /// Invalid rep for vector index
   static const unsigned short kINVALID_INDEX = kINVALID_USHORT;
-  /// Image index type for Image2D within EventImage2D  
+  /// Image index type for Image2D within EventImage2D
   typedef unsigned short ImageIndex_t;
   /// ROI index type for Particle within EventROI
   typedef unsigned short ParticleIndex_t;
@@ -28,12 +28,12 @@ namespace larcv3 {
   static const ProjectionID_t kINVALID_PROJECTIONID = kINVALID_USHORT;
 
   struct Extents_t{
-    unsigned int first;
+    unsigned long long int first;
     unsigned int n;
   };
 
   struct IDExtents_t{
-    unsigned int first;
+    unsigned long long int first;
     unsigned int n;
     unsigned int id;
   };
@@ -49,7 +49,7 @@ namespace larcv3 {
     static const short kNOTPRESENT = -1;        ///< Channel does not exist
     static const short kNEGATIVEPEDESTAL = -2;  ///< Channel not reco-ed due to pedestal < 0
     /// Standard channel status enum stored in the database
-    enum ChannelStatus_t : int { 
+    enum ChannelStatus_t : int {
       kDISCONNECTED=0, ///< Channel is not connected
       kDEAD=1,         ///< Dead channel
       kLOWNOISE=2,     ///< Abnormally low noise channel
@@ -73,7 +73,7 @@ namespace larcv3 {
     kPoolMax      ///< max channel
   };
 
-  /// Object appearance type in LArTPC  
+  /// Object appearance type in LArTPC
   enum ShapeType_t : int {
     kShapeShower,  ///< Shower
     kShapeTrack,   ///< Track
@@ -106,13 +106,18 @@ namespace larcv3 {
   // In this section, we define and specialize a number of cases for mapping
   // datatypes used in larcv3 to datatypes needed for hdf5 serialization.
 
-#ifndef SWIG
-
   template <typename T>
   hid_t get_datatype();
 
+  template <typename T>
+  std::string as_string();
 
-#endif
 
 }
+
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_dataformattypes(pybind11::module m);
+#endif
+
 #endif

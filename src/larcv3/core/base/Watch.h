@@ -4,7 +4,7 @@
  * \file Watch.h
  *
  * \ingroup core_Base
- * 
+ *
  * \brief Class def header for a class larcv3::Watch
  *
  * @author kazuhiro
@@ -16,6 +16,7 @@
 
 #include <sys/time.h>
 #include <time.h>
+
 
 namespace larcv3 {
 
@@ -58,5 +59,12 @@ namespace larcv3 {
     double _wall_time_start;
   };
 }
+
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_Watch(pybind11::module m);
 #endif
-/** @} */ // end of doxygen group 
+
+
+#endif
+/** @} */ // end of doxygen group

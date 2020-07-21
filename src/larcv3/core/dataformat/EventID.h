@@ -15,7 +15,6 @@
 #define __LARCV3DATAFORMAT_EVENTID_H
 
 #include <iostream>
-#include "hdf5.h"
 #include "larcv3/core/dataformat/DataFormatTypes.h"
 
 namespace larcv3 {
@@ -87,21 +86,18 @@ class EventID {
     _event = event;
   }
 
-#ifndef SWIG
-  public: 
+  public:
     static hid_t get_datatype() {
       hid_t datatype;
-      herr_t status;
       datatype = H5Tcreate (H5T_COMPOUND, sizeof (EventID));
-      status = H5Tinsert (datatype, "run",
+      H5Tinsert (datatype, "run",
                   HOFFSET (EventID, _run), larcv3::get_datatype<long>());
-      status = H5Tinsert (datatype, "subrun", 
+      H5Tinsert (datatype, "subrun",
                   HOFFSET (EventID, _subrun), larcv3::get_datatype<long>());
-      status = H5Tinsert (datatype, "event",
+      H5Tinsert (datatype, "event",
                   HOFFSET (EventID, _event), larcv3::get_datatype<long>());
       return datatype;
     }
-#endif
 
  private:
   long _run;     ///< LArSoft run number
@@ -109,6 +105,11 @@ class EventID {
   long _event;   ///< LArSoft event number
 };
 }  // namespace larcv3
+
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_eventid(pybind11::module m);
+#endif
 
 #endif
 /** @} */  // end of doxygen group

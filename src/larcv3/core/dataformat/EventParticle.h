@@ -2,7 +2,7 @@
  * \file EventParticle.h
  *
  * \ingroup DataFormat
- * 
+ *
  * \brief Class def header for a class EventParticle
  *
  * @author kazuhiro
@@ -26,17 +26,18 @@ namespace larcv3 {
     User-defined data product class (please comment!)
   */
   class EventParticle : public EventBase {
-    
+
   public:
-    
+
     /// Default constructor
     EventParticle();
-    
+
     /// Default destructor
     ~EventParticle(){}
 
+    inline larcv3::Particle at(size_t index) {return _part_v.at(index);}
 
-    
+
 
     void set(const std::vector<larcv3::Particle>& part_v);
     void append(const larcv3::Particle& part);
@@ -46,25 +47,25 @@ namespace larcv3 {
     inline const std::vector<larcv3::Particle>& as_vector() const
     { return _part_v; }
 
+    // inline const larcv3::Particle& at(size_t index) const {return _part_v.at(index);}
+
     inline size_t size() const {return _part_v.size();}
 
-// #ifndef SWIG
     /// Data clear method
     void clear      ();
     void initialize (hid_t group, uint compression);
     void serialize  (hid_t group);
     void deserialize(hid_t group, size_t entry, bool reopen_groups=false);
     void finalize   ();
-// #endif
 
-    static EventParticle * to_particle(EventBase * e){
-      return (EventParticle *) e;
-    }
+    // static EventParticle * to_particle(EventBase * e){
+    //   return (EventParticle *) e;
+    // }
 
   private:
 
     void open_in_datasets(hid_t group);
-    void open_out_datasets(hid_t group);    
+    void open_out_datasets(hid_t group);
 
     std::vector<larcv3::Particle> _part_v; ///< a collection of particles (index maintained)
 
@@ -76,11 +77,11 @@ namespace larcv3 {
 namespace larcv3 {
 
   // Template instantiation for IO
-  template<> 
+  template<>
   inline std::string product_unique_name<larcv3::EventParticle>() { return "particle"; }
-  // template<> 
+  // template<>
   // inline EventParticle& IOManager::get_data(const std::string&);
-  // template<> 
+  // template<>
   // inline EventParticle& IOManager::get_data(const ProducerID_t);
 
   /**
@@ -98,10 +99,13 @@ namespace larcv3 {
     EventBase* create() { return new EventParticle; }
   };
 
-  
+
 }
 
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_eventparticle(pybind11::module m);
+#endif
 
 #endif
-/** @} */ // end of doxygen group 
-
+/** @} */ // end of doxygen group

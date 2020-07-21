@@ -2,7 +2,7 @@
  * \file EventBase.h
  *
  * \ingroup DataFormat
- * 
+ *
  * \brief Class def header for a class EventBase
  *
  * @author cadams, kazuhiro
@@ -31,7 +31,7 @@ namespace larcv3 {
     friend class IOManager;
     friend class DataProductFactory;
   public:
-    
+
     virtual ~EventBase() = 0;
 
     virtual void clear() = 0;
@@ -51,11 +51,17 @@ namespace larcv3 {
 
     int get_num_objects(hid_t group);
 
+
+
 // #endif
   };
 
 }
 
-#endif //inc guard
-/** @} */ // end of doxygen group 
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_eventbase(pybind11::module m);
+#endif
 
+#endif //inc guard
+/** @} */ // end of doxygen group

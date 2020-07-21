@@ -6,10 +6,18 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3 -g")
 
+# We set a larcv compiler definition to build all of the python code
+# This is obviously not set if you are including headers, which protects
+# the need to install pybind11 outside of larcv (since it's header only,
+# there is no need to link to it.)
+add_definitions(-DLARCV_INTERNAL)
+
 
 if(MPI)
-    # set(MPI_ASSUME_NO_BUILTIN_MPI True)
-    find_package(MPI COMPONENTS C CXX)
+    message (STATUS "MPI_CXX_COMPILER ${MPI_CXX_COMPILER}")
+    message (STATUS "MPI_CXX_COMPILER ${MPI_C_COMPILER}")
+    set(MPI_ASSUME_NO_BUILTIN_MPI True)
+    find_package(MPI REQUIRED COMPONENTS C)
     include_directories(MPI_C_INCLUDE_DIRECTORIES)
     include_directories(MPI_CXX_INCLUDE_DIRECTORIES)
     add_definitions(-DLARCV_MPI)
@@ -27,7 +35,6 @@ if(MPI)
 endif()
 
 
-
 # set(CMAKE_SKIP_RPATH TRUE)
 project(larcv3)
 
@@ -39,12 +46,8 @@ set(PROJECT_SOURCE_DIR "./")
 include_directories("./")
 
 # IO needs HDF5:
-find_package(HDF5 REQUIRED COMPONENTS C)
+find_package(HDF5 REQUIRED)
 include_directories(${HDF5_INCLUDE_DIR})
-
-# Many packages need python:
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
 
 if(OPENMP)
   find_package(OpenMP)
@@ -54,6 +57,10 @@ if(OPENMP)
 endif()
 
 # This package needs numpy::
+
+# Many packages need python:
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 ######################################
 # This is from https://github.com/Eyescale/CMake/blob/master/FindNumPy.cmake
@@ -100,17 +107,18 @@ include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
 
 # # Define a function that handles generating python bindings for a library:
-# macro(generate_python_bindings name)    
-    
-    
+# macro(generate_python_bindings name)
+
+
 
 # endmacro(generate_python_bindings)
-
-
+if(CMAKE_PYTHON_BINDINGS)
+  message("Adding pybind11")
+  add_subdirectory(pybind11)
+  include_directories(${PYBIND11_INCLUDE_DIR})
+  message(${PYBIND11_INCLUDE_DIR})
+else()
+  add_definitions(-DLARCV_NO_PYBIND)
+endif(CMAKE_PYTHON_BINDINGS)
 
 add_subdirectory(larcv3)
-
-
-
-
-

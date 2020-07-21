@@ -7,7 +7,7 @@
  *
  * @author kazuhiro
  * @author cadams
- 
+
 
  * \addtogroup core_DataFormat
 
@@ -41,6 +41,8 @@ namespace larcv3 {
     /// EventBase::clear() override
     inline void clear() {_cluster_v.clear();}
 
+    inline larcv3::SparseCluster<dimension>  at(size_t index) {return _cluster_v.at(index);}
+
     /// Access to all stores larcv3::SparseCluster
     inline const std::vector<larcv3::SparseCluster<dimension> >& as_vector() const { return _cluster_v; }
 
@@ -59,8 +61,6 @@ namespace larcv3 {
     void set(const larcv3::SparseCluster<dimension>& clusters);
     /// Emplace a new element
     void emplace(larcv3::VoxelSetArray&& clusters, larcv3::ImageMeta<dimension>&& meta);
-    // /// Set a new element
-    // void set(const larcv3::VoxelSetArray& clusters, const larcv3::ImageMeta& meta);
 
 
 
@@ -95,10 +95,10 @@ namespace larcv3 {
   template<> inline std::string product_unique_name<larcv3::EventSparseCluster2D>() { return "cluster2d"; }
   template<> inline std::string product_unique_name<larcv3::EventSparseCluster3D>() { return "cluster3d"; }
 
-  
+
   //    \class larcv3::EventSparseCluster
   //    \brief A concrete factory class for larcv3::EventSparseCluster
-  
+
 
   class EventSparseCluster2DFactory : public DataProductFactoryBase {
   public:
@@ -110,7 +110,7 @@ namespace larcv3 {
     /// create method
     EventBase* create() { return new EventSparseCluster2D; }
   };
-  
+
   class EventSparseCluster3DFactory : public DataProductFactoryBase {
   public:
     /// ctor
@@ -124,6 +124,14 @@ namespace larcv3 {
 
 }
 
+
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+template<size_t dimension>
+void init_eventsparse_cluster_base(pybind11::module m);
+
+void init_eventsparsecluster(pybind11::module m);
+#endif
+
 #endif
 /** @} */ // end of doxygen group
-

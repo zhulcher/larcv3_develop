@@ -18,6 +18,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <memory>
 
 #include "hdf5.h"
 
@@ -84,15 +85,15 @@ namespace larcv3 {
     size_t get_n_entries() const
     { return (_in_entries_total ? _in_entries_total : _out_entries); }
 
-    EventBase* get_data(const std::string& type, const std::string& producer);
-    EventBase* get_data(const ProducerID_t id);
+    std::shared_ptr<EventBase> get_data(const std::string& type, const std::string& producer);
+    std::shared_ptr<EventBase> get_data(const ProducerID_t id);
     //
     // Some template class getter for auto-cast
     //
 
     template <class T>
     inline T& get_data(const std::string& producer)
-    { return *((T*)(this->get_data(product_unique_name<T>(), producer))); }
+    { return * std::dynamic_pointer_cast<T> (this->get_data(product_unique_name<T>(), producer)); }
 
     template <class T>
     inline T& get_data(const ProducerID_t id)
@@ -108,10 +109,13 @@ namespace larcv3 {
                          << std::endl;
         throw larbys();
       }
-      return *((T*)(ptr));
+      return * std::dynamic_pointer_cast<T> (ptr);
     }
 
-    const EventID& event_id() const { return ( _set_event_id.valid() ? _set_event_id : _event_id ); }
+    const EventID& event_id() const {
+        if (_set_event_id.valid() ) return _set_event_id;
+        return _event_id ;
+     }
 
     const EventID& last_event_id() const { return _last_event_id; }
 
@@ -219,14 +223,14 @@ namespace larcv3 {
 
 
     // Hold a copy of the file access property list:
-    hid_t  _fapl; //FileAccPropList 
+    hid_t  _fapl; //FileAccPropList
 
     std::map<std::string, hid_t> _groups;
 
 
     // Keeping track of products and producers:
     size_t                          _product_ctr;
-    std::vector<larcv3::EventBase*> _product_ptr_v;
+    std::vector<std::shared_ptr<larcv3::EventBase>> _product_ptr_v;
     std::vector<std::string>        _product_type_v;
     std::vector<std::string>        _producer_name_v;
     std::vector<ProductStatus_t>    _product_status_v;
@@ -259,7 +263,10 @@ namespace larcv3 {
   };
 
 }
+#ifdef LARCV_INTERNAL
+#include <pybind11/pybind11.h>
+void init_iomanager(pybind11::module m);
+#endif
 
 #endif
 /** @} */ // end of doxygen group
-    
