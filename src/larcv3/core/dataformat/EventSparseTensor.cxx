@@ -129,7 +129,7 @@ namespace larcv3 {
       H5Pset_deflate(extents_cparms, compression);
       // extents_cparms.setDeflate(compression);
     }
-    
+
     hid_t lcpl = H5Pcreate(H5P_LINK_CREATE);
     hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
 
@@ -639,46 +639,54 @@ namespace larcv3 {
     // Step 1: Get the extents information from extents dataset
     /////////////////////////////////////////////////////////
 
-    // H5::DataSet * extents_dataset = &(_open_datasets[EXTENTS_DATASET]);
+    // We have this CACHED, so only read from file on the first pass:
+    if (_in_file_extents.size() == 0){
 
-    // Get a dataspace inside this file:
-    // H5::DataSpace extents_dataspace = extents_dataset->getSpace();
+        // First, ask how big the entire dataset is:
 
+        hsize_t n_extents_elements = H5Sget_simple_extent_npoints(_open_in_dataspaces[EXTENTS_DATASET]);
 
-    // Create a dimension for the data to add (which is the hyperslab data)
-    hsize_t extents_slab_dims[1];
-    extents_slab_dims[0] = 1;
+        std::cout << "Number of elements read in: " << n_extents_elements << std::endl;
 
-    hsize_t extents_offset[1];
-    extents_offset[0] = entry;
+        // Create a dimension for the data to add (which is the hyperslab data)
+        hsize_t extents_slab_dims[1];
+        extents_slab_dims[0] = n_extents_elements;
 
-    /////////////////////////////////////////////////////////
-    // Read this extents entry from the dataset
-    /////////////////////////////////////////////////////////
+        hsize_t extents_offset[1];
+        extents_offset[0] = 0;
 
-    // Now, select as a hyperslab the last section of data for writing:
-    // extents_dataspace = extents_dataset->getSpace();
-    H5Sselect_hyperslab(_open_in_dataspaces[EXTENTS_DATASET],
-      H5S_SELECT_SET,
-      extents_offset,    // start
-      NULL ,             // stride
-      extents_slab_dims, //count
-      NULL               // block
-    );
+        /////////////////////////////////////////////////////////
+        // Read this extents entry from the dataset
+        /////////////////////////////////////////////////////////
 
-    // Define memory space:
-    hid_t extents_memspace = H5Screate_simple(1, extents_slab_dims, NULL);
+        // Now, select as a hyperslab the last section of data for writing:
+        // extents_dataspace = extents_dataset->getSpace();
+        H5Sselect_hyperslab(_open_in_dataspaces[EXTENTS_DATASET],
+          H5S_SELECT_SET,
+          extents_offset,    // start
+          NULL ,             // stride
+          extents_slab_dims, // count
+          NULL               // block
+        );
 
-    Extents_t input_extents;
-    // Read the new data
-    H5Dread(
-      _open_in_datasets[EXTENTS_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
-      _data_types[EXTENTS_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
-      extents_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
-      _open_in_dataspaces[EXTENTS_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
-      xfer_plist_id,                         // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
-      &(input_extents)                       // void * buf  OUT: Buffer to receive data read from file.
-    );
+        // Define memory space:
+        hid_t extents_memspace = H5Screate_simple(1, extents_slab_dims, NULL);
+
+        _in_file_extents.resize(n_extents_elements);
+        // Read the new data
+        H5Dread(
+          _open_in_datasets[EXTENTS_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
+          _data_types[EXTENTS_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
+          extents_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
+          _open_in_dataspaces[EXTENTS_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
+          xfer_plist_id,                         // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
+          &(_in_file_extents[0])                    // void * buf  OUT: Buffer to receive data read from file.
+        );
+    }
+
+    // With the cached extents table, we can simple look up the extents for this:
+    auto input_extents = _in_file_extents[entry];
+
     /////////////////////////////////////////////////////////
     // Step 2: Get the voxel_extents information
     /////////////////////////////////////////////////////////
@@ -691,44 +699,57 @@ namespace larcv3 {
         return;
     }
 
-    // H5::DataSet * voxel_extents_dataset = &(_open_in_datasets[VOXEL_EXTENTS_DATASET]);
+    if (_in_file_voxel_extents.size() == 0) {
+        // Here, we cache the voxel extents.
 
-    // Get a dataspace inside this file:
-    // H5::DataSpace voxel_extents_dataspace = voxel_extents_dataset->getSpace();
+        hsize_t n_voxel_extents_elements =
+            H5Sget_simple_extent_npoints(_open_in_dataspaces[VOXEL_EXTENTS_DATASET]);
 
-    // Create a dimension for the data to add (which is the hyperslab data)
-    hsize_t voxel_extents_slab_dims[1];
-    voxel_extents_slab_dims[0] = input_extents.n;
+        // Create a dimension for the data to add (which is the hyperslab data)
+        hsize_t voxel_extents_slab_dims[1];
+        voxel_extents_slab_dims[0] = n_voxel_extents_elements;
 
-    hsize_t voxel_extents_offset[1];
-    voxel_extents_offset[0] = input_extents.first;
+        hsize_t voxel_extents_offset[1];
+        voxel_extents_offset[0] = 0;
 
-    // Now, select as a hyperslab the last section of data for writing:
-    // extents_dataspace = extents_dataset.getSpace();
-    H5Sselect_hyperslab(_open_in_dataspaces[VOXEL_EXTENTS_DATASET],
-      H5S_SELECT_SET,
-      voxel_extents_offset,    // start
-      NULL ,                   // stride
-      voxel_extents_slab_dims, // count
-      NULL                     // block
-    );
+        // Now, select as a hyperslab the last section of data for writing:
+        // extents_dataspace = extents_dataset.getSpace();
+        H5Sselect_hyperslab(_open_in_dataspaces[VOXEL_EXTENTS_DATASET],
+          H5S_SELECT_SET,
+          voxel_extents_offset,    // start
+          NULL ,                   // stride
+          voxel_extents_slab_dims, // count
+          NULL                     // block
+        );
 
-    hid_t voxel_extents_memspace = H5Screate_simple(1, voxel_extents_slab_dims, NULL);
+        hid_t voxel_extents_memspace = H5Screate_simple(1, voxel_extents_slab_dims, NULL);
 
-    std::vector<IDExtents_t> voxel_extents;
+        std::vector<IDExtents_t> voxel_extents;
 
-    // Reserve space for reading in voxel_extents:
-    voxel_extents.resize(input_extents.n);
+        // Reserve space for reading in voxel_extents:
+        // voxel_extents.resize(input_extents.n);
+        _in_file_voxel_extents.resize(n_voxel_extents_elements);
 
-    H5Dread(
-      _open_in_datasets[VOXEL_EXTENTS_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
-      _data_types[VOXEL_EXTENTS_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
-      voxel_extents_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
-      _open_in_dataspaces[VOXEL_EXTENTS_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
-      xfer_plist_id,                               // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
-      &(voxel_extents[0])                          // void * buf  OUT: Buffer to receive data read from file.
-    );
-    // std::cout << "voxel_extents.size(): " << voxel_extents.size() << std::endl;
+        H5Dread(
+          _open_in_datasets[VOXEL_EXTENTS_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
+          _data_types[VOXEL_EXTENTS_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
+          voxel_extents_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
+          _open_in_dataspaces[VOXEL_EXTENTS_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
+          xfer_plist_id,                               // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
+          &(_in_file_voxel_extents[0])                 // void * buf  OUT: Buffer to receive data read from file.
+        );
+        // std::cout << "voxel_extents.size(): " << voxel_extents.size() << std::endl;
+
+
+    }
+
+
+    // Read the voxel extents from memory:
+    std::vector<IDExtents_t>::const_iterator first
+        = _in_file_voxel_extents.begin() + input_extents.first;
+    std::vector<IDExtents_t>::const_iterator last
+        = _in_file_voxel_extents.begin() + input_extents.first + input_extents.n;
+    std::vector<IDExtents_t> voxel_extents(first, last);
 
 
 
@@ -773,7 +794,6 @@ namespace larcv3 {
       xfer_plist_id,                            // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
       &(image_meta[0])                          // void * buf  OUT: Buffer to receive data read from file.
     );
-    // std::cout << "image_meta.size(): " << image_meta.size() << std::endl;
 
 
     /////////////////////////////////////////////////////////
@@ -839,20 +859,19 @@ namespace larcv3 {
       );
       // std::cout << "temp_voxel_vector.size(): " << temp_voxel_vector.size() << std::endl;
 
+
       for (auto & v : temp_voxel_vector){
-        _tensor_v.at(voxel_set_index).emplace(v);
+        _tensor_v.at(voxel_set_index).add(v);
       }
-
-
       _tensor_v.at(voxel_set_index).id(voxel_set_index);
       // std::cout << "_tensor_v.at(voxel_set_index).at(cluster_id).size(): " << _tensor_v.at(voxel_set_index).at(cluster_id).size() << std::endl;
 
       offset += voxels_slab_dims[0];
 
       // Set the meta for this object:
-      // Skip the meta check during deserialization:
-      _tensor_v.at(voxel_set_index).meta(image_meta.at(voxel_set_index), false);
+      _tensor_v.at(voxel_set_index).meta(image_meta.at(voxel_set_index));
     }
+
 
 
     return;
@@ -908,3 +927,4 @@ void init_eventsparsetensor(pybind11::module m){
 }
 
 #endif
+                                                                
