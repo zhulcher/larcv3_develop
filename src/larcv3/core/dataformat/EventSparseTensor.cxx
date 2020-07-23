@@ -745,11 +745,11 @@ namespace larcv3 {
 
 
     // Read the voxel extents from memory:
-    std::vector<IDExtents_t>::const_iterator first
+    std::vector<IDExtents_t>::const_iterator voxel_extents_first
         = _in_file_voxel_extents.begin() + input_extents.first;
-    std::vector<IDExtents_t>::const_iterator last
+    std::vector<IDExtents_t>::const_iterator voxel_extents_last
         = _in_file_voxel_extents.begin() + input_extents.first + input_extents.n;
-    std::vector<IDExtents_t> voxel_extents(first, last);
+    std::vector<IDExtents_t> voxel_extents(voxel_extents_first, voxel_extents_last);
 
 
 
@@ -757,43 +757,58 @@ namespace larcv3 {
     // Step 3: Get the image_meta information
     /////////////////////////////////////////////////////////
 
-    // H5::DataSet * image_meta_dataset = &(_open_in_datasets[IMAGE_META_DATASET]);
+    if (_in_file_image_meta.size() == 0) {
 
-    // Get a dataspace inside this file:
-    // H5::DataSpace image_meta_dataspace = image_meta_dataset->getSpace();
 
-    // Create a dimension for the data to add (which is the hyperslab data)
-    hsize_t image_meta_slab_dims[1];
-    image_meta_slab_dims[0] = input_extents.n;
+      hsize_t n_image_meta_elements =
+          H5Sget_simple_extent_npoints(_open_in_dataspaces[IMAGE_META_DATASET]);
 
-    hsize_t image_meta_offset[1];
-    image_meta_offset[0] = input_extents.first;
+      // Create a dimension for the data to add (which is the hyperslab data)
+      hsize_t image_meta_slab_dims[1];
+      image_meta_slab_dims[0] = n_image_meta_elements;
 
-    // Now, select as a hyperslab the last section of data for writing:
-    // extents_dataspace = extents_dataset.getSpace();
-    H5Sselect_hyperslab(_open_in_dataspaces[IMAGE_META_DATASET],
-      H5S_SELECT_SET,
-      image_meta_offset,    // start
-      NULL ,                // stride
-      image_meta_slab_dims, // count
-      NULL                  // block
-    );
+      hsize_t image_meta_offset[1];
+      image_meta_offset[0] = 0;
 
-    hid_t image_meta_memspace = H5Screate_simple(1, image_meta_slab_dims, NULL);
+      // Now, select as a hyperslab the last section of data for writing:
+      // extents_dataspace = extents_dataset.getSpace();
+      H5Sselect_hyperslab(_open_in_dataspaces[IMAGE_META_DATASET],
+        H5S_SELECT_SET,
+        image_meta_offset,    // start
+        NULL ,                // stride
+        image_meta_slab_dims, // count
+        NULL                  // block
+      );
 
-    std::vector<larcv3::ImageMeta<dimension> > image_meta;
+      hid_t image_meta_memspace = H5Screate_simple(1, image_meta_slab_dims, NULL);
 
-    // Reserve space for reading in image_meta:
-    image_meta.resize(input_extents.n);
+      // std::vector<larcv3::ImageMeta<dimension> > image_meta;
 
-    H5Dread(
-      _open_in_datasets[IMAGE_META_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
-      _data_types[IMAGE_META_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
-      image_meta_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
-      _open_in_dataspaces[IMAGE_META_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
-      xfer_plist_id,                            // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
-      &(image_meta[0])                          // void * buf  OUT: Buffer to receive data read from file.
-    );
+      // Reserve space for reading in image_meta:
+      // image_meta.resize(input_extents.n);
+      _in_file_image_meta.resize(n_image_meta_elements);
+
+      H5Dread(
+        _open_in_datasets[IMAGE_META_DATASET],    // hid_t dataset_id  IN: Identifier of the dataset read from.
+        _data_types[IMAGE_META_DATASET],          // hid_t mem_type_id IN: Identifier of the memory datatype.
+        image_meta_memspace,                      // hid_t mem_space_id  IN: Identifier of the memory dataspace.
+        _open_in_dataspaces[IMAGE_META_DATASET],  // hid_t file_space_id IN: Identifier of the dataset's dataspace in the file.
+        xfer_plist_id,                            // hid_t xfer_plist_id     IN: Identifier of a transfer property list for this I/O operation.
+        &(_in_file_image_meta[0])                 // void * buf  OUT: Buffer to receive data read from file.
+      );
+
+    }
+
+    // And, get the slice of the image meta needed:
+    // std::vector< larcv3::ImageMeta<dimension> >::const_iterator image_meta_first
+    //     = _in_file_image_meta.begin() + input_extents.first;
+    // std::vector< larcv3::ImageMeta<dimension> >::const_iterator image_meta_last
+    //     = _in_file_image_meta.begin() + input_extents.first + input_extents.n;
+    auto image_meta_first
+        = _in_file_image_meta.begin() + input_extents.first;
+    auto image_meta_last
+        = _in_file_image_meta.begin() + input_extents.first + input_extents.n;
+    std::vector< larcv3::ImageMeta<dimension> > image_meta(image_meta_first, image_meta_last);
 
 
     /////////////////////////////////////////////////////////
@@ -927,4 +942,3 @@ void init_eventsparsetensor(pybind11::module m){
 }
 
 #endif
-                                                                

@@ -80,8 +80,9 @@ namespace larcv3 {
     std::vector<larcv3::SparseTensor<dimension> >  _tensor_v;
 
     // Cache the infile extents information for faster IO:
-    std::vector<Extents_t> _in_file_extents;
-    std::vector<IDExtents_t> _in_file_voxel_extents;
+    std::vector<Extents_t>              _in_file_extents;
+    std::vector<IDExtents_t>            _in_file_voxel_extents;
+    std::vector<ImageMeta<dimension> >  _in_file_image_meta;
 
   };
 
