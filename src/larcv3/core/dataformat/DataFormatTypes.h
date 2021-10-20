@@ -75,9 +75,13 @@ namespace larcv3 {
 
   /// Object appearance type in LArTPC
   enum ShapeType_t : int {
-    kShapeShower,  ///< Shower
-    kShapeTrack,   ///< Track
-    kShapeUnknown  ///< LArbys
+    kShapeShower,    ///< Shower
+    kShapeTrack,     ///< Track
+    kShapeMichel,    ///< Michel
+    kShapeDelta,     ///< Delta ray
+    kShapeLEScatter, ///< low energy scattering (e.g. low-E compton)
+    kShapeGhost,     ///< ghost 3d point
+    kShapeUnknown    ///< LArbys
   };
 
   /// "ID" of MCParticles in terms of its G4 track ID (unless mixing multiple MC samples)
