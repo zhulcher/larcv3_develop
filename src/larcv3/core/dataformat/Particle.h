@@ -55,12 +55,13 @@ namespace larcv3 {
       , _ancestor_trackid (kINVALID_UINT)
       , _ancestor_pdg     (0)
 
-      , _ancestor_process ("")
-      , _parent_process   ("")
       , _parent_id(kINVALID_INSTANCEID)
-      , _children_id()
-      , _group_id(kINVALID_INSTANCEID)
       , _interaction_id(kINVALID_INSTANCEID)
+      , _group_id(kINVALID_INSTANCEID)
+      , _children_id()
+      , _ancestor_process ("")
+      
+      
     {
     }
 
@@ -106,7 +107,7 @@ namespace larcv3 {
     // inline const std::vector<larcv3::BBox2D>& boundingbox_2d() const { return _bb2d_v; }
     // inline const BBox3D& boundingbox_3d() const { return _bb3d; }
 
-     inline int num_voxels() const { return _num_voxels; }
+    inline int num_voxels() const { return _num_voxels; }
 
     // parent info getter
     inline unsigned int parent_track_id () const { return _parent_trackid; }
@@ -126,16 +127,12 @@ namespace larcv3 {
     inline double       ancestor_z        () const { return _ancestor_vtx.z(); }
     inline double       ancestor_t        () const { return _ancestor_vtx.t(); }
 
-    
-
-    inline const std::string& parent_creation_process() const { return _parent_process; }
     inline InstanceID_t parent_id       () const { return _parent_id;      }
+    inline InstanceID_t interaction_id() const { return _interaction_id; }
+    inline InstanceID_t group_id()       const { return _group_id;       }
     inline const std::vector<InstanceID_t>& children_id() const { return _children_id; }
     inline const std::string& ancestor_creation_process() const { return _ancestor_process; }
-
-    // group ID
-    inline InstanceID_t group_id()       const { return _group_id;       }
-    inline InstanceID_t interaction_id() const { return _interaction_id; }
+    
 
     //
     // Setters
@@ -166,7 +163,7 @@ namespace larcv3 {
     // inline void boundingbox_2d(const std::vector<larcv3::BBox2D>& bb_v) { _bb2d_v = bb_v; }
     // inline void boundingbox_2d(const BBox2D& bb, ProjectionID_t id) { _bb2d_v.resize(id+1); _bb2d_v[id] = bb; }
     // inline void boundingbox_3d(const BBox3D& bb) { _bb3d = bb; }
-     inline void num_voxels(int count) { _num_voxels = count; }
+    inline void num_voxels(int count) { _num_voxels = count; }
     //inline void type_score (const std::vector<float>& score_v) { _type_score_v = score_v; }
     // parent info setter
     inline void parent_track_id (unsigned int id )   { _parent_trackid = id;}
@@ -178,15 +175,15 @@ namespace larcv3 {
     inline void ancestor_pdg_code (int code)           { _ancestor_pdg = code;  }
     inline void ancestor_position (const larcv3::Vertex& vtx) { _ancestor_vtx = vtx; }
     inline void ancestor_position (double x, double y, double z, double t) { _ancestor_vtx = Vertex(x,y,z,t); }
-    
-    inline void parent_creation_process(const std::string& proc) { _parent_process = proc; }
+
     inline void parent_id       (InstanceID_t id)    { _parent_id = id; }
+    inline void interaction_id(InstanceID_t id) { _interaction_id = id; }
+    inline void group_id(InstanceID_t id) { _group_id = id; }
     inline void children_id     (InstanceID_t id)    { _children_id.push_back(id); }
     inline void children_id     (const std::vector<InstanceID_t>& id_v) { _children_id = id_v; }
     inline void ancestor_creation_process(const std::string &proc) { _ancestor_process = proc; }
-    // group id setter
-    inline void group_id(InstanceID_t id) { _group_id = id; }
-    inline void interaction_id(InstanceID_t id) { _interaction_id = id; }
+    
+    
 
     std::string dump() const;
 
@@ -275,21 +272,10 @@ namespace larcv3 {
       H5Tinsert(datatype, "ancestor_vtx",
                 HOFFSET(Particle, _ancestor_vtx),
                 Vertex::get_datatype());
-      
-      H5Tinsert(datatype, "ancestor_process",
-                HOFFSET(Particle, _ancestor_process),
-                larcv3::get_datatype<std::string>());
-      H5Tinsert(datatype, "parent_process",
-                HOFFSET(Particle, _parent_process),
-                larcv3::get_datatype<std::string>());
+
+
       H5Tinsert(datatype, "parent_id",
                 HOFFSET(Particle, _parent_id),
-                larcv3::get_datatype<InstanceID_t>());
-      H5Tinsert(datatype, "children_id",
-                HOFFSET(Particle, _children_id),
-                larcv3::get_datatype<std::vector<InstanceID_t>>());
-      H5Tinsert(datatype, "group_id",
-                HOFFSET(Particle, _group_id),
                 larcv3::get_datatype<InstanceID_t>());
       H5Tinsert(datatype, "interaction_id",
                 HOFFSET(Particle, _interaction_id),
@@ -297,8 +283,11 @@ namespace larcv3 {
       H5Tinsert(datatype, "num_voxels",
                 HOFFSET(Particle, _num_voxels),
                 larcv3::get_datatype<int>());
+      H5Tinsert(datatype, "group_id",
+                HOFFSET(Particle, _group_id),
+                larcv3::get_datatype<InstanceID_t>());
 
-          return datatype;
+      return datatype;
     }
 
   private:
@@ -335,12 +324,11 @@ namespace larcv3 {
     int          _ancestor_pdg;     ///< PDG code of the ancestor particle
     Vertex       _ancestor_vtx; ///< (x,y,z,t) of ancestor's vertex information
 
-    std::string _ancestor_process; ///< string identifier of the ancestor particle's creation process from Geant4
-    std::string _parent_process;                   ///< string identifier of the parent particle's creation process from Geant4
     InstanceID_t _parent_id;                       ///< "ID" of the parent particle in ParticleSet collection
-    std::vector<InstanceID_t> _children_id; ///< "ID" of the children particles in ParticleSet collection
-    InstanceID_t _group_id;                        ///< "ID" to group multiple particles together (for clustering purpose)
     InstanceID_t _interaction_id;                  ///< "ID" to group multiple particles per interaction
+    InstanceID_t _group_id;                        ///< "ID" to group multiple particles together (for clustering purpose)
+    std::vector<InstanceID_t> _children_id; ///< "ID" of the children particles in ParticleSet collection
+    std::string _ancestor_process; ///< string identifier of the ancestor particle's creation process from Geant4
 
     //std::vector<float> _type_score_v;
 

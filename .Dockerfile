@@ -114,7 +114,7 @@ RUN pip3 --no-cache-dir install rootpy root_numpy
 # larcv3
 RUN mkdir -p /app && \
     cd /app && \
-    git clone https://github.com/DeepLearnPhysics/larcv3.git && \
+    git clone --branch IO_separation https://github.com/zhulcher/larcv3.git && \
     cd larcv3 && \
     mkdir -p $LARCV_BUILDDIR && \
     mkdir -p $LARCV_LIBDIR && \
