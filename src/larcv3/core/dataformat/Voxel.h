@@ -402,8 +402,8 @@ namespace larcv3 {
     inline void set(VoxelSetArray&& vsa, const ImageMeta<dimension>& meta)
     { *((VoxelSetArray*)this) = std::move(vsa); this->meta(meta); }
     /// emplace VoxelSetArray
-    inline void memplace(const VoxelSetArray& vsa, const ImageMeta<dimension>& meta)
-    { *((VoxelSetArray*)this) = vsa; this->meta(meta); }
+    //inline void memplace(const VoxelSetArray& vsa, const ImageMeta<dimension>& meta)
+    //{ *((VoxelSetArray*)this) = vsa; this->meta(meta); }
     /// Meta setter
     void meta(const larcv3::ImageMeta<dimension>& meta);
 

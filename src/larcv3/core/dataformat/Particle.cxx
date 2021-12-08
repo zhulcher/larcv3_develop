@@ -53,6 +53,19 @@ namespace larcv3 {
   }
 
 
+  void Particle::ancestor_creation_process (const std::string& proc) { 
+    if (proc.size() < PARTICLE_PROCESS_STRLEN){
+      std::copy(proc.begin(), proc.end(),_ancestor_process); 
+    }
+    else{
+      LARCV_CRITICAL() << "Can not use a string longer than 64 characters in Particle ancestor_creation_process!" << std::endl;
+      throw larbys();
+    }
+  }
+  std::string Particle::ancestor_creation_process() const { 
+    return std::string(_ancestor_process); 
+  }
+
 template<> std::string as_string<Particle>() {return "Particle";}
 }
 
@@ -157,7 +170,25 @@ void init_particle(pybind11::module m){
     particle.def("ancestor_y", &larcv3::Particle::ancestor_y);
     particle.def("ancestor_z", &larcv3::Particle::ancestor_z);
     particle.def("ancestor_t", &larcv3::Particle::ancestor_t);
+
+    particle.def("num_voxels", (int (larcv3::Particle::*)() const)(&larcv3::Particle::num_voxels));
+    particle.def("num_voxels", (void (larcv3::Particle::*)( int  ))(&larcv3::Particle::num_voxels));
+
+    particle.def("parent_id", (larcv3::ParticleIndex_t (larcv3::Particle::*)() const)(&larcv3::Particle::parent_id));
+    particle.def("parent_id", (void (larcv3::Particle::*)(larcv3::InstanceID_t))(&larcv3::Particle::parent_id));
+
+    particle.def("interaction_id", (larcv3::ParticleIndex_t (larcv3::Particle::*)() const)(&larcv3::Particle::interaction_id));
+    particle.def("interaction_id", (void (larcv3::Particle::*)(larcv3::InstanceID_t))(&larcv3::Particle::interaction_id));
+
+    particle.def("group_id", (larcv3::ParticleIndex_t (larcv3::Particle::*)() const)(&larcv3::Particle::group_id));
+    particle.def("group_id", (void (larcv3::Particle::*)(larcv3::InstanceID_t))(&larcv3::Particle::group_id));
+
+    particle.def("children_id", (const std::vector<larcv3::ParticleIndex_t> (larcv3::Particle::*)() const)(&larcv3::Particle::children_id));
+    particle.def("children_id", (void (larcv3::Particle::*)(larcv3::InstanceID_t))(&larcv3::Particle::children_id));
+    particle.def("children_id", (void (larcv3::Particle::*)(const std::vector<larcv3::InstanceID_t>&))(&larcv3::Particle::children_id));
     
+    particle.def("ancestor_creation_process", (std::string (larcv3::Particle::*)() const)(&larcv3::Particle::ancestor_creation_process));
+    particle.def("ancestor_creation_process", (void (larcv3::Particle::*)(const std::string & ))(&larcv3::Particle::ancestor_creation_process));
 
     particle.def("dump",       &larcv3::Particle::dump);
     particle.def("__repr__",   &larcv3::Particle::dump);

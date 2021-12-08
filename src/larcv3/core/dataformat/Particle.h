@@ -54,12 +54,11 @@ namespace larcv3 {
       , _parent_pdg       (0)
       , _ancestor_trackid (kINVALID_UINT)
       , _ancestor_pdg     (0)
-
-      , _parent_id(kINVALID_INSTANCEID)
-      , _interaction_id(kINVALID_INSTANCEID)
-      , _group_id(kINVALID_INSTANCEID)
-      , _children_id()
-      , _ancestor_process ("")
+      , _parent_id        (kINVALID_INSTANCEID)
+      , _interaction_id   (kINVALID_INSTANCEID)
+      , _group_id         (kINVALID_INSTANCEID)
+      , _children_id      ()
+      , _ancestor_process ()
       
       
     {
@@ -101,7 +100,7 @@ namespace larcv3 {
     inline double       distance_travel () const { return _dist_travel;     }
     inline double       energy_init     () const { return _energy_init;     }
     inline double       energy_deposit  () const { return _energy_deposit;  }
-           std::string  creation_process() const;
+    std::string  creation_process() const;
 
     // const BBox2D& boundingbox_2d(ProjectionID_t id) const;
     // inline const std::vector<larcv3::BBox2D>& boundingbox_2d() const { return _bb2d_v; }
@@ -130,8 +129,8 @@ namespace larcv3 {
     inline InstanceID_t parent_id       () const { return _parent_id;      }
     inline InstanceID_t interaction_id() const { return _interaction_id; }
     inline InstanceID_t group_id()       const { return _group_id;       }
-    inline const std::vector<InstanceID_t>& children_id() const { return _children_id; }
-    inline const std::string& ancestor_creation_process() const { return _ancestor_process; }
+    inline const std::vector<InstanceID_t> children_id() const { return _children_id; }
+    std::string ancestor_creation_process() const ;
     
 
     //
@@ -181,7 +180,7 @@ namespace larcv3 {
     inline void group_id(InstanceID_t id) { _group_id = id; }
     inline void children_id     (InstanceID_t id)    { _children_id.push_back(id); }
     inline void children_id     (const std::vector<InstanceID_t>& id_v) { _children_id = id_v; }
-    inline void ancestor_creation_process(const std::string &proc) { _ancestor_process = proc; }
+           void ancestor_creation_process(const std::string& proc) ;
     
     
 
@@ -273,19 +272,24 @@ namespace larcv3 {
                 HOFFSET(Particle, _ancestor_vtx),
                 Vertex::get_datatype());
 
-
+      H5Tinsert(datatype, "num_voxels",
+                HOFFSET(Particle, _num_voxels),
+                larcv3::get_datatype<int>());
       H5Tinsert(datatype, "parent_id",
                 HOFFSET(Particle, _parent_id),
                 larcv3::get_datatype<InstanceID_t>());
       H5Tinsert(datatype, "interaction_id",
                 HOFFSET(Particle, _interaction_id),
                 larcv3::get_datatype<InstanceID_t>());
-      H5Tinsert(datatype, "num_voxels",
-                HOFFSET(Particle, _num_voxels),
-                larcv3::get_datatype<int>());
       H5Tinsert(datatype, "group_id",
                 HOFFSET(Particle, _group_id),
                 larcv3::get_datatype<InstanceID_t>());
+      H5Tinsert(datatype, "children_id",
+                HOFFSET(Particle, _children_id),
+                larcv3::get_datatype<std::vector<InstanceID_t>>());
+      H5Tinsert(datatype, "ancestor_process",
+                HOFFSET(Particle, _ancestor_process),
+                string_type);
 
       return datatype;
     }
@@ -328,7 +332,7 @@ namespace larcv3 {
     InstanceID_t _interaction_id;                  ///< "ID" to group multiple particles per interaction
     InstanceID_t _group_id;                        ///< "ID" to group multiple particles together (for clustering purpose)
     std::vector<InstanceID_t> _children_id; ///< "ID" of the children particles in ParticleSet collection
-    std::string _ancestor_process; ///< string identifier of the ancestor particle's creation process from Geant4
+    char         _ancestor_process[PARTICLE_PROCESS_STRLEN];  ///< string identifier of the ancestor particle's creation process from Geant4
 
     //std::vector<float> _type_score_v;
 
