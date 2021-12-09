@@ -24,3 +24,4 @@ _skbuild
 larcv.egg-info
 dist
 MANIFEST
+src/larcv3/app/Supera/edep.397.root

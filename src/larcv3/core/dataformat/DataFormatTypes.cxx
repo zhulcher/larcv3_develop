@@ -93,6 +93,13 @@ namespace larcv3{
     return datatype;
   }
 
+    template<>
+  hid_t get_datatype<std::vector<InstanceID_t>>()              {
+      datatype = H5Tvlen_create(H5T_NATIVE_USHORT);
+      return datatype;
+  }
+  
+
 
   // Wrapper functions and enumerations to make binding easier:
   template<> std::string as_string<float>() {return "Float";}
@@ -120,6 +127,8 @@ void init_dataformattypes(pybind11::module m){
   idextents_t.def_readwrite("n",     &larcv3::IDExtents_t::n);
   idextents_t.def_readwrite("id",    &larcv3::IDExtents_t::id);
 
+  pybind11::class_<larcv3::InstanceID_t_vec> instanceid_t_vec(m, "InstanceID_t_vec");
+  instanceid_t_vec.def(pybind11::init<>());
 
   m.attr("kINVALID_INDEX")        = larcv3::kINVALID_INDEX;
   m.attr("kINVALID_INSTANCEID")   = larcv3::kINVALID_INSTANCEID;

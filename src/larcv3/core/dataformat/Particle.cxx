@@ -185,7 +185,7 @@ void init_particle(pybind11::module m){
 
     particle.def("children_id", (const std::vector<larcv3::ParticleIndex_t> (larcv3::Particle::*)() const)(&larcv3::Particle::children_id));
     particle.def("children_id", (void (larcv3::Particle::*)(larcv3::InstanceID_t))(&larcv3::Particle::children_id));
-    particle.def("children_id", (void (larcv3::Particle::*)(const std::vector<larcv3::InstanceID_t>&))(&larcv3::Particle::children_id));
+    particle.def("children_id", (void (larcv3::Particle::*)(const larcv3::InstanceID_t_vec&))(&larcv3::Particle::children_id));
     
     particle.def("ancestor_creation_process", (std::string (larcv3::Particle::*)() const)(&larcv3::Particle::ancestor_creation_process));
     particle.def("ancestor_creation_process", (void (larcv3::Particle::*)(const std::string & ))(&larcv3::Particle::ancestor_creation_process));

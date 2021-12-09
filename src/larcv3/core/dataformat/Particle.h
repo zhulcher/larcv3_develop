@@ -129,7 +129,7 @@ namespace larcv3 {
     inline InstanceID_t parent_id       () const { return _parent_id;      }
     inline InstanceID_t interaction_id() const { return _interaction_id; }
     inline InstanceID_t group_id()       const { return _group_id;       }
-    inline const std::vector<InstanceID_t> children_id() const { return _children_id; }
+    inline const InstanceID_t_vec children_id() const { return _children_id; }
     std::string ancestor_creation_process() const ;
     
 
@@ -179,7 +179,7 @@ namespace larcv3 {
     inline void interaction_id(InstanceID_t id) { _interaction_id = id; }
     inline void group_id(InstanceID_t id) { _group_id = id; }
     inline void children_id     (InstanceID_t id)    { _children_id.push_back(id); }
-    inline void children_id     (const std::vector<InstanceID_t>& id_v) { _children_id = id_v; }
+    inline void children_id     (const InstanceID_t_vec& id_v) { _children_id = id_v; }
            void ancestor_creation_process(const std::string& proc) ;
     
     
@@ -286,7 +286,7 @@ namespace larcv3 {
                 larcv3::get_datatype<InstanceID_t>());
       H5Tinsert(datatype, "children_id",
                 HOFFSET(Particle, _children_id),
-                larcv3::get_datatype<std::vector<InstanceID_t>>());
+                larcv3::get_datatype<InstanceID_t_vec>());
       H5Tinsert(datatype, "ancestor_process",
                 HOFFSET(Particle, _ancestor_process),
                 string_type);
@@ -331,7 +331,7 @@ namespace larcv3 {
     InstanceID_t _parent_id;                       ///< "ID" of the parent particle in ParticleSet collection
     InstanceID_t _interaction_id;                  ///< "ID" to group multiple particles per interaction
     InstanceID_t _group_id;                        ///< "ID" to group multiple particles together (for clustering purpose)
-    std::vector<InstanceID_t> _children_id; ///< "ID" of the children particles in ParticleSet collection
+    InstanceID_t_vec _children_id;                 ///< "ID" of the children particles in ParticleSet collection
     char         _ancestor_process[PARTICLE_PROCESS_STRLEN];  ///< string identifier of the ancestor particle's creation process from Geant4
 
     //std::vector<float> _type_score_v;

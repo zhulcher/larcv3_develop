@@ -44,8 +44,11 @@ namespace larcv3 {
   /// Invalid Voxel3DID_t definition
   static const VoxelID_t kINVALID_VOXELID = kINVALID_ULONGLONG;
 
-  /// Channel status constants
-  namespace chstatus {
+  typedef std::vector<InstanceID_t> InstanceID_t_vec;
+
+      /// Channel status constants
+      namespace chstatus
+  {
     static const short kNOTPRESENT = -1;        ///< Channel does not exist
     static const short kNEGATIVEPEDESTAL = -2;  ///< Channel not reco-ed due to pedestal < 0
     /// Standard channel status enum stored in the database
