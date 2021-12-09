@@ -95,7 +95,8 @@ namespace larcv3{
 
     template<>
   hid_t get_datatype<std::vector<InstanceID_t>>()              {
-      datatype = H5Tvlen_create(H5T_NATIVE_USHORT);
+      hid_t datatype;
+          datatype = H5Tvlen_create(H5T_NATIVE_USHORT);
       return datatype;
   }
   
