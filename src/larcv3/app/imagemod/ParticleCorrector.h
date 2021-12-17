@@ -21,7 +21,7 @@
 #include "larcv3/core/dataformat/ImageMeta.h"
 #include "larcv3/core/dataformat/DataFormatTypes.h"
 
-namespace larcv {
+namespace larcv3 {
 
   /**
      \class ProcessBase

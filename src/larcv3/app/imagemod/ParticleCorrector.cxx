@@ -5,7 +5,7 @@
 #include "larcv3/core/dataformat/EventParticle.h"
 #include "larcv3/core/dataformat/EventSparseCluster.h"
 #include <ostream>
-namespace larcv {
+namespace larcv3 {
 
   static ParticleCorrectorProcessFactory __global_ParticleCorrectorProcessFactory__;
 
