@@ -26,7 +26,7 @@ namespace larcv3 {
 
   bool ParticleCorrector::process(IOManager& mgr)
   {
-    auto const &event_cluster3d = mgr.get_data<EventSparseCluster3D>(_cluster3d_producer);
+    std::shared_ptr<larcv3::EventSparseTensor3D> event_cluster3d = std::dynamic_pointer_cast<EventSparseCluster3D>(_cluster3d_producer);
     auto const& event_particle  = mgr.get_data< EventParticle       > ( _particle_producer  );
 
     auto const& cluster3d_v = event_cluster3d.as_vector ();
@@ -36,7 +36,7 @@ namespace larcv3 {
       throw larbys();
     }
 
-    larcv3::ImageMeta<3> meta3d = event_cluster3d.meta();
+    larcv3::ImageMeta<3> meta3d = event_cluster3d..sparse_cluster(0).meta();
 
     // Create vector of voxel positions for each cluster3d ~ particle
     std::vector<std::vector<larcv3::Point3D> > positions_v;
