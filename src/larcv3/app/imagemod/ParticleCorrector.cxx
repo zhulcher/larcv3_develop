@@ -26,7 +26,7 @@ namespace larcv3 {
 
   bool ParticleCorrector::process(IOManager& mgr)
   {
-    std::shared_ptr<larcv3::EventSparseTensor3D> event_cluster3d = std::dynamic_pointer_cast<EventSparseCluster3D>(_cluster3d_producer);
+    std::shared_ptr<larcv3::EventSparseCluster3D> event_cluster3d = std::dynamic_pointer_cast<EventSparseCluster3D>(_cluster3d_producer);
     auto const& event_particle  = mgr.get_data< EventParticle       > ( _particle_producer  );
 
     auto const& cluster3d_v = event_cluster3d.as_vector ();
