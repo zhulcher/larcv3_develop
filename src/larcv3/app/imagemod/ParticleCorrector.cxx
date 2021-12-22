@@ -93,8 +93,8 @@ namespace larcv3 {
       if (!correctStart && !correctEnd) {
         auto start = particle.position().as_point3d();
         auto end = particle.end_position().as_point3d();
-        particle.first_step(start.x, start.y, start.z, particle.position().t());
-        particle.last_step(end.x, end.y, end.z, particle.end_position().t());
+        particle.first_step(start.x[0], start.x[1], start.x[2], particle.position().t());
+        particle.last_step(end.x[0], end.x[1], end.x[2], particle.end_position().t());
         out_particle_v.push_back(particle);
         continue;
       }
@@ -126,22 +126,22 @@ namespace larcv3 {
 
       // Correct starting point
       if (correctStart && i_best_start > -1) {
-        LARCV_INFO() << particle.pdg_code() << " " << particle.id() << " " << vs[i_best_start].x << " " << vs[i_best_start].y << " " << vs[i_best_start].z << std::endl;
-        particle.first_step(vs[i_best_start].x, vs[i_best_start].y, vs[i_best_start].z, particle.first_step().t());
+        LARCV_INFO() << particle.pdg_code() << " " << particle.id() << " " << vs[i_best_start].x[0] << " " << vs[i_best_start].x[1] << " " << vs[i_best_start].x[2] << std::endl;
+        particle.first_step(vs[i_best_start].x[0], vs[i_best_start].x[1], vs[i_best_start].x[2], particle.first_step().t());
       }
       else {
         auto start = particle.position().as_point3d();
-        particle.first_step(start.x, start.y, start.z, particle.position().t());
+        particle.first_step(start.x[0], start.x[1], start.x[2], particle.position().t());
       }
 
       // Correct end point
       if (correctEnd && i_best_end > -1) {
-        LARCV_INFO() << particle.pdg_code() << " " << particle.id() << " " << vs[i_best_end].x << " " << vs[i_best_end].y << " " << vs[i_best_end].z << std::endl;
-        particle.last_step(vs[i_best_end].x, vs[i_best_end].y, vs[i_best_end].z, particle.last_step().t());
+        LARCV_INFO() << particle.pdg_code() << " " << particle.id() << " " << vs[i_best_end].x[0] << " " << vs[i_best_end].x[1] << " " << vs[i_best_end].x[2] << std::endl;
+        particle.last_step(vs[i_best_end].x[0], vs[i_best_end].x[1], vs[i_best_end].x[2], particle.last_step().t());
       }
       else {
         auto end = particle.end_position().as_point3d();
-        particle.last_step(end.x, end.y, end.z, particle.end_position().t());
+        particle.last_step(end.x[0], end.x[1], end.x[2], particle.end_position().t());
       }
 
       out_particle_v.push_back(particle);
