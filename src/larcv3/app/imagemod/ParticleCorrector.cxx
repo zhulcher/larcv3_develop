@@ -89,7 +89,7 @@ namespace larcv3 {
           meta3d.min(2) < particle.position().as_point3d().x[2] &&
           meta3d.max(0) > particle.position().as_point3d().x[0] &&
           meta3d.max(1) > particle.position().as_point3d().x[1] &&
-          meta3d.max(2) > particle.position().as_point3d().x[2] &&
+          meta3d.max(2) > particle.position().as_point3d().x[2]
           );
       bool correctEnd = !(
           meta3d.min(0) < particle.end_position().as_point3d().x[0] &&
@@ -97,7 +97,7 @@ namespace larcv3 {
           meta3d.min(2) < particle.end_position().as_point3d().x[2] &&
           meta3d.max(0) > particle.end_position().as_point3d().x[0] &&
           meta3d.max(1) > particle.end_position().as_point3d().x[1] &&
-          meta3d.max(2) > particle.end_position().as_point3d().x[2] &&
+          meta3d.max(2) > particle.end_position().as_point3d().x[2]
           );
       LARCV_INFO() << particle.pdg_code() << " " << particle.id() << " " << correctStart << " " << correctEnd << " " << vs.size() << std::endl;
 
@@ -125,7 +125,7 @@ namespace larcv3 {
             meta3d.min(2) < point3d.x[2] &&
             meta3d.max(0) > point3d.x[0] &&
             meta3d.max(1) > point3d.x[1] &&
-            meta3d.max(2) > point3d.x[2] &&)
+            meta3d.max(2) > point3d.x[2])
         {
           if (correctStart) {
             double distance_start = point3d.distance(particle.position().as_point3d());
