@@ -52,7 +52,7 @@ namespace larcv3 {
       particle_v[i].num_voxels(vs.size());
 
       for(size_t j=0; j<vs.size(); ++j) {
-        larcv3::Point3D My_Point =larcv3::Point3D(meta3d.position(vs[j].id()))
+        larcv3::Point3D My_Point =larcv3::Point3D({meta3d.position(vs[j].id())[0],meta3d.position(vs[j].id())[1],meta3d.position(vs[j].id())[2]});
         if (vs[j].value() > _voxel_min_value) particle_positions.push_back(My_Point);
       }
       positions_v.push_back(particle_positions);
