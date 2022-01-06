@@ -40,9 +40,13 @@ namespace larcv3 {
 
     // Create vector of voxel positions for each cluster3d ~ particle
     std::vector<std::vector<larcv3::Point3D> > positions_v;
+    //???????? edits
     for(size_t i=0; i<particle_v.size(); ++i) {
+      for (size_t j = 0; j < cluster3d_v->size(); j++)
+      {
+      
       std::vector<larcv3::Point3D> particle_positions;
-      auto const& vs = cluster3d_v[i].as_vector(); // VoxelSet
+      auto const& vs = cluster3d_v.at(j).as_vector()[i]; // VoxelSet
       // Correct / fill informations on particle
 			if (_correct_energy_deposit) particle_v[i].energy_deposit(cluster3d_v[i].sum());
       particle_v[i].num_voxels(vs.size());
@@ -51,6 +55,7 @@ namespace larcv3 {
         if (vs[j].value() > _voxel_min_value) particle_positions.push_back(meta3d.position(vs[j].id()));
       }
       positions_v.push_back(particle_positions);
+      }
     }
 
     // correct particle positions by looking at each cluster3d energy deposits
