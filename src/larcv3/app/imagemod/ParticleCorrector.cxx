@@ -42,11 +42,11 @@ namespace larcv3 {
     std::vector<std::vector<larcv3::Point3D> > positions_v;
     //???????? edits
     for(size_t i=0; i<particle_v.size(); ++i) {
-      for (size_t j = 0; j < cluster3d_v->size(); j++)
+      for (size_t k = 0; k < cluster3d_v.size(); k++)
       {
       
       std::vector<larcv3::Point3D> particle_positions;
-      auto const& vs = cluster3d_v.at(j).as_vector()[i]; // VoxelSet
+      auto const& vs = cluster3d_v.at(k).as_vector()[i]; // VoxelSet
       // Correct / fill informations on particle
 			if (_correct_energy_deposit) particle_v[i].energy_deposit(cluster3d_v[i].sum());
       particle_v[i].num_voxels(vs.size());
