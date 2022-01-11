@@ -11,8 +11,8 @@
 /** \addtogroup ImageMod
 
     @{*/
-#ifndef __PARTICLECORRECTOR_H__
-#define __PARTICLECORRECTOR_H__
+#ifndef __PARTICLECORRECTOR_H__NEW
+#define __PARTICLECORRECTOR_H__NEW
 
 #include "larcv3/core/processor/ProcessBase.h"
 #include "larcv3/core/processor/ProcessFactory.h"
@@ -28,7 +28,7 @@ namespace larcv3 {
      User defined class ParticleCorrector ... these comments are used to generate
      doxygen documentation!
   */
-  class ParticleCorrector : public ProcessBase {
+  class ParticleCorrector : public larcv3::ProcessBase {
 
   public:
 
@@ -38,11 +38,11 @@ namespace larcv3 {
     /// Default destructor
     ~ParticleCorrector(){}
 
-    void configure(const PSet&);
+    void configure(const larcv3::PSet&);
 
     void initialize();
 
-    bool process(IOManager& mgr);
+    bool process(larcv3::IOManager& mgr);
 
     void finalize();
 
