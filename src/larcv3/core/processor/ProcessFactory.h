@@ -71,9 +71,9 @@ namespace larcv3 {
       auto iter = _factory_map.find(name);
       if(iter == _factory_map.end() || !((*iter).second)) {
         ////////
-        for (const auto &elem : _factory_map)
+        for (const auto &x : _factory_map)
         {
-          LARCV_ERROR() << elem.first << " " << elem.second.first << " " << elem.second.second << "\n";
+          LARCV_ERROR() << x.first << ": " << x.second << "\n";
         }
         ///////????
         LARCV_ERROR() << "Found no registered class " << name << std::endl;
