@@ -158,7 +158,7 @@ void ProcessDriver::configure(const PSet& cfg) {
   else
     _random_access = -1;
   try {
-    auto random_access_int = cfg.get<int>("RandomSeed");
+    auto random_access_int = cfg.get<int>("RandomSeed",0);
     if (random_access_int != 0) _random_access = random_access_int;
   } catch (...) {
   }

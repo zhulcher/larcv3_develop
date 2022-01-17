@@ -15,7 +15,7 @@ namespace larcv3 {
   void ParticleCountFilter::configure(const PSet& cfg)
   {
     _part_producer = cfg.get<std::string>("ParticleProducer");
-    _max_part_count = cfg.get<size_t>("MaxCount");
+    _max_part_count = cfg.get<size_t>("MaxCount", std::numeric_limits<size_t>::max());
     _min_part_count = cfg.get<size_t>("MinCount",0);
   }
 
