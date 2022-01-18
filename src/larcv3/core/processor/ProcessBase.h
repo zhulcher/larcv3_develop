@@ -80,10 +80,10 @@ namespace larcv3 {
     std::string _typename;  ///< process type from factory
   };
 }
-#ifdef LARCV_INTERNAL
+
 #include <pybind11/pybind11.h>
 void init_processbase(pybind11::module m);
-#endif
+
 
 #endif
 /** @} */ // end of doxygen group
