@@ -15,7 +15,8 @@ add_library(larcv3 SHARED
     $<TARGET_OBJECTS:Supera>
     )
 
-
+find_package(EDepSim) #short term fix
+target_link_libraries(larcv3 EDepSim::edepsim_io) #short term fix
 
 
 if (OpenMP_CXX_FOUND)
