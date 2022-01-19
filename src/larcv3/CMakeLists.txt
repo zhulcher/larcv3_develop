@@ -5,6 +5,7 @@ add_subdirectory(app)
 # This is admittedly pretty clunky, but it gets the job done to make one object file:
 
 add_library(larcv3 SHARED
+    $<TARGET_OBJECTS:Supera>
     $<TARGET_OBJECTS:base>
     $<TARGET_OBJECTS:dataformat>
     $<TARGET_OBJECTS:processor>
@@ -12,7 +13,6 @@ add_library(larcv3 SHARED
     $<TARGET_OBJECTS:queueio>
     $<TARGET_OBJECTS:imagemod>
     $<TARGET_OBJECTS:sbnd_imagemod>
-    $<TARGET_OBJECTS:Supera>
     )
 
 find_package(EDepSim) #short term fix
