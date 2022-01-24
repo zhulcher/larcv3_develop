@@ -39,9 +39,9 @@ target_link_libraries(larcv3 ${HDF5_LIBRARIES})
 target_link_libraries(larcv3 ${PYTHON_LIBRARIES})
 
 
-find_package(EDepSim REQUIRED) #short term fix
-target_link_libraries(larcv3 EDepSim::edepsim_io EDepSim::edepsim)# "/app/edep-sim/io") #short term fix
-include_directories(larcv3 /app/edep-sim/io)
+#find_package(EDepSim REQUIRED) #short term fix
+#target_link_libraries(larcv3 EDepSim::edepsim_io EDepSim::edepsim)# "/app/edep-sim/io") #short term fix
+#include_directories(larcv3 /app/edep-sim/io)
 
 
 ###############################
