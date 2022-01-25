@@ -79,11 +79,14 @@ const std::map<std::string, larcv3::ProcessID_t>& ProcessDriver::process_map()
 
 const ProcessBase* ProcessDriver::process_ptr(size_t id) const {
   LARCV_DEBUG() << "Called" << std::endl;
+  for (auto const &p:_proc_v) std::cout<<p<<std::endl;
   if (id >= _proc_v.size()) {
     LARCV_CRITICAL() << "Invalid ID requested: " << id << std::endl;
     throw larbys();
   }
-  return _proc_v[id];
+  auto &p=_proc_v[id];
+  for (auto const &p : _proc_v) std::cout << p << std::endl;
+  return p;
 }
 
 void ProcessDriver::configure(const std::string config_file) {
