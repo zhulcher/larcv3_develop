@@ -84,9 +84,9 @@ const ProcessBase* ProcessDriver::process_ptr(size_t id) const {
     LARCV_CRITICAL() << "Invalid ID requested: " << id << std::endl;
     throw larbys();
   }
-  auto &p=_proc_v[id];
+  auto &pr=_proc_v[id];
   for (auto const &p : _proc_v) std::cout << p << std::endl;
-  return p;
+  return pr;
 }
 
 void ProcessDriver::configure(const std::string config_file) {
