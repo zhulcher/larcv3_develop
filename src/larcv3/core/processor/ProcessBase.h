@@ -17,8 +17,10 @@
 #include "larcv3/core/base/Watch.h"
 #include "larcv3/core/dataformat/IOManager.h"
 #include "larcv3/core/processor/ProcessorTypes.h"
+#include "TG4Event.h"
 
-namespace larcv3 {
+namespace larcv3
+{
 
   class ProcessDriver;
   class ProcessFactory;
@@ -31,27 +33,27 @@ namespace larcv3 {
      ProcessBase::process(larcv3::IOManager&) is called for every event. The argument provides an access to event data.\n
      ProcessBase::finalize() is called after larcv3::ProcessDriver finished looping over all events.\n
   */
-  class ProcessBase : public larcv_base {
+  class ProcessBase : public larcv_base
+  {
     friend class ProcessDriver;
     friend class ProcessFactory;
 
   public:
-
     /// Default constructor
-    ProcessBase(const std::string name="ProcessBase");
+    ProcessBase(const std::string name = "ProcessBase");
 
     /// Default destructor
-    virtual ~ProcessBase(){}
+    virtual ~ProcessBase() {}
 
     //
     // Four pure virtual functions that larcv3::ProcessDriver calls and need implementation.
     //
     /// Called first with the argument passing the configuration parameters.
-    virtual void configure(const PSet&) = 0;
+    virtual void configure(const PSet &) = 0;
     /// Called after configure, this is where you should initialize variables to be stored in an output analysis file.
     virtual void initialize() = 0;
     /// Called per-event, this is where you should implement your per-event action/analysis.
-    virtual bool process(IOManager& mgr) = 0;
+    virtual bool process(IOManager &mgr) = 0;
     /// Called after event loop is over. This is where you can store your histograms etc. to an output analysis file.
     virtual void finalize() = 0;
 
@@ -62,27 +64,30 @@ namespace larcv3 {
     virtual bool is(const std::string question) const;
     /// Only for experts: larcv3::ProcessDriver to see if this module can create a new event or not
     bool event_creator() const
-    { return _event_creator; }
+    {
+      return _event_creator;
+    }
+
+    void SetEvent(PyObject *ev) { std::cout << "Wrong Base" << std::endl; };
 
   private:
+    void _configure_(const PSet &);
 
-    void _configure_(const PSet&);
+    bool _process_(IOManager &mgr);
 
-    bool _process_(IOManager& mgr);
-
-    bool _event_creator;    ///< special flag to mark this algorithm an event creator
-    larcv3::Watch _watch;    ///< algorithm profile stopwatch
-    double _proc_time;      ///< algorithm execution time record (cumulative)
-    size_t _proc_count;     ///< algorithm execution counter (cumulative)
+    bool _event_creator;  ///< special flag to mark this algorithm an event creator
+    larcv3::Watch _watch; ///< algorithm profile stopwatch
+    double _proc_time;    ///< algorithm execution time record (cumulative)
+    size_t _proc_count;   ///< algorithm execution counter (cumulative)
 
     larcv3::ProcessID_t _id; ///< unique algorithm identifier
-    bool _profile;          ///< measure process time if profile flag is on
-    std::string _typename;  ///< process type from factory
+    bool _profile;           ///< measure process time if profile flag is on
+    std::string _typename;   ///< process type from factory
   };
 }
 #include <pybind11/pybind11.h>
 void init_processbase(pybind11::module m);
-
+// void init_TG4Event(pybind11::module m);
 
 #endif
 /** @} */ // end of doxygen group

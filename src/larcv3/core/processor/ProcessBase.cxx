@@ -23,7 +23,6 @@ namespace larcv3 {
     _event_creator=cfg.get<bool>("EventCreator",false);
     configure(cfg);
   }
-  
   bool ProcessBase::_process_(IOManager& mgr)
   {
     bool status=false;
@@ -43,11 +42,11 @@ void init_processbase(pybind11::module m){
     using Class = larcv3::ProcessBase;
     pybind11::class_<Class> processbase(m, "ProcessBase");
     processbase.def("is", &Class::is);
+    processbase.def("SetEvent", &Class::SetEvent);
 
-    // We don't actually want to construct any instances of ProcessBase
-    // processbase.def(pybind11::init<const std::string>(), 
-                    // pybind11::arg("name")="ProcessBase");
-
+  // We don't actually want to construct any instances of ProcessBase
+  // processbase.def(pybind11::init<const std::string>(),
+  // pybind11::arg("name")="ProcessBase");
 }
 
 

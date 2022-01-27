@@ -7,6 +7,10 @@ file(GLOB HEADERS *.h)
 # Add a shared library
 add_library(${name} OBJECT ${SOURCES})
 
+find_package(EDepSim REQUIRED) #short term fix
+target_link_libraries(${name} EDepSim::edepsim_io)# "/app/edep-sim/io") #short term fix
+
+
 
 
 install (FILES ${HEADERS}
