@@ -68,7 +68,11 @@ namespace larcv3
       return _event_creator;
     }
 
-    void SetEvent(PyObject *ev) { std::cout << "Wrong Base" << std::endl; };
+    void SetEvent(const TG4Event *ev)
+    {
+      (void)ev;
+      std::cout << "Wrong Base" << std::endl;
+    };
 
   private:
     void _configure_(const PSet &);
